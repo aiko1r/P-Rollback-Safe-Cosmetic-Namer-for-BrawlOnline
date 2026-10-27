@@ -1,0 +1,2055 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>P+ Rollback-Safe Custom Texture Tool</title>
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root, [data-theme='dark'] {
+  --text-xs: clamp(0.8rem, 0.75rem + 0.25vw, 0.9rem);
+  --text-sm: clamp(0.95rem, 0.9rem + 0.3vw, 1.05rem);
+  --text-base: clamp(1.05rem, 1rem + 0.3vw, 1.2rem);
+  --text-lg: clamp(1.25rem, 1.1rem + 0.6vw, 1.6rem);
+  --text-xl: clamp(1.7rem, 1.4rem + 1.2vw, 2.5rem);
+  --space-1: 0.25rem; --space-2: 0.5rem; --space-3: 0.75rem; --space-4: 1rem;
+  --space-6: 1.5rem; --space-8: 2rem; --space-10: 2.5rem; --space-12: 3rem;
+  --color-bg: #14161b;
+  --color-surface: #191c22;
+  --color-surface-2: #1e222a;
+  --color-surface-offset: #232833;
+  --color-divider: #262b35;
+  --color-border: #333a47;
+  --color-text: #d7dae0;
+  --color-text-muted: #8b91a0;
+  --color-text-faint: #5c6270;
+  --color-primary: #e8af34;
+  --color-good: #6daa45;
+  --color-warn: #e0a458;
+  --color-bad: #d16d6d;
+  --color-blue: #5591c7;
+  --radius-sm: 0.375rem; --radius-md: 0.5rem; --radius-lg: 0.75rem;
+  --transition-interactive: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  --font-body: 'Satoshi', 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; scroll-behavior: smooth; }
+body {
+  min-height: 100dvh; line-height: 1.6;
+  font-family: var(--font-body); font-size: var(--text-base);
+  color: var(--color-text); background-color: var(--color-bg);
+}
+a, button, input, select { transition: color var(--transition-interactive), background var(--transition-interactive), border-color var(--transition-interactive), box-shadow var(--transition-interactive); }
+input, button, select { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: none; }
+:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; border-radius: var(--radius-sm); }
+
+.wrap { max-width: 1900px; margin: 0 auto; padding: var(--space-6) var(--space-4) var(--space-12); }
+
+/* header */
+header h1 { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.02em; }
+header h1 .gold { color: var(--color-primary); }
+header p.sub { color: var(--color-text-muted); font-size: var(--text-sm); margin-top: var(--space-1); }
+.stats { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-4); }
+.stat { font-size: var(--text-xs); color: var(--color-text-muted);
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: 999px; padding: 0.2rem 0.8rem; }
+.stat b { color: var(--color-text); font-weight: 500; }
+
+/* tabs */
+.tabs { display: flex; gap: var(--space-2); margin-top: var(--space-8); flex-wrap: wrap; }
+.tab { font-size: var(--text-sm); font-weight: 500; padding: 0.5rem 1.1rem;
+  border-radius: var(--radius-md); color: var(--color-text-muted); border: 1px solid transparent; }
+.tab:hover { color: var(--color-text); }
+.tab[aria-selected="true"] { background: var(--color-surface-2); color: var(--color-text); border-color: var(--color-border); }
+
+/* costume sections */
+.slot { margin-top: var(--space-8); }
+.slot > button.slothead {
+  width: 100%; display: flex; align-items: center; gap: var(--space-3); text-align: left;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); font-size: var(--text-base); font-weight: 700;
+}
+.slot > button.slothead:hover { border-color: var(--color-primary); }
+.slothead .chip { font-size: var(--text-xs); font-weight: 500; color: var(--color-text-muted);
+  padding: 0.1rem 0.6rem; border-radius: 999px; background: var(--color-surface-offset); }
+.slothead .arrow { margin-left: auto; color: var(--color-text-faint); transition: transform var(--transition-interactive); }
+.slot.open .slothead .arrow { transform: rotate(90deg); }
+.slotbody { display: none; }
+.slot.open .slotbody { display: block; }
+
+/* texture rows */
+.trow {
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--color-divider); border-top: none;
+  background: var(--color-surface-2);
+}
+.trow:first-of-type { border-top: 1px solid var(--color-divider); }
+.trow:hover { background: var(--color-surface-offset); }
+.tname { font-weight: 700; font-size: var(--text-base); min-width: 130px; }
+.traw { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-faint); }
+.tmeta { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.tmeta .m { font-size: var(--text-xs); color: var(--color-text-muted);
+  font-family: var(--font-mono); padding: 0.1rem 0.55rem; border-radius: var(--radius-sm);
+  background: var(--color-surface-offset); }
+.tfile {
+  margin-left: auto; font-family: var(--font-mono); font-size: var(--text-xs); word-break: keep-all;
+  color: var(--color-text); background: var(--color-surface-offset);
+  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 0.35rem 0.7rem; max-width: 100%; overflow-wrap: anywhere; text-align: left;
+}
+.tfile:hover { color: var(--color-primary); border-color: var(--color-primary); }
+.tshared { width: 100%; font-size: var(--text-xs); color: var(--color-warn); }
+.badge { display: inline-block; font-size: var(--text-xs); padding: 0.1rem 0.6rem;
+  border-radius: 999px; font-weight: 500; }
+.badge.s0 { color: var(--color-good); background: color-mix(in oklab, var(--color-good) 13%, transparent); }
+.badge.s1, .badge.s2 { color: var(--color-warn); background: color-mix(in oklab, var(--color-warn) 13%, transparent); }
+.badge.s3 { color: var(--color-bad); background: color-mix(in oklab, var(--color-bad) 13%, transparent); }
+
+/* ---------- full table (power view) ---------- */
+.full { display: none; margin-top: var(--space-6); }
+.toolbar { position: sticky; top: 0; z-index: 10; background: color-mix(in oklab, var(--color-bg) 88%, transparent);
+  backdrop-filter: blur(8px); display: flex; flex-wrap: wrap; gap: var(--space-2);
+  align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--color-divider); }
+.toolbar input[type=search], .toolbar select {
+  background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: 0.5rem 0.8rem; font-size: var(--text-sm);
+}
+.toolbar input[type=search] { flex: 1 1 280px; min-width: 220px; }
+.toolbar input[type=search]::placeholder { color: var(--color-text-faint); }
+.check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm);
+  color: var(--color-text-muted); cursor: pointer; user-select: none; padding: 0 var(--space-1); }
+.check input { accent-color: var(--color-primary); width: 15px; height: 15px; cursor: pointer; }
+.count { margin-left: auto; font-size: var(--text-xs); color: var(--color-text-faint); white-space: nowrap; }
+.tablewrap { overflow: auto; max-height: calc(100vh - 150px); margin-top: var(--space-4); border: 1px solid var(--color-divider);
+  border-radius: var(--radius-lg); background: var(--color-surface); }
+table { border-collapse: collapse; width: 100%; font-size: var(--text-sm); table-layout: fixed; }
+/* fixed column widths so the whole table always fits the page — no sideways scrolling */
+thead th:nth-child(1) { width: 9%; }
+thead th:nth-child(2) { width: 11%; }
+thead th:nth-child(3) { width: 21%; }
+thead th:nth-child(4) { width: 8.5%; }
+thead th:nth-child(5) { width: 6%; }
+thead th:nth-child(6) { width: 6.5%; }
+thead th:nth-child(7) { width: 22%; }
+thead th:nth-child(8) { width: 8%; }
+thead th:nth-child(9) { width: 8%; }
+tbody td { overflow-wrap: anywhere; }
+tbody td .badge { overflow-wrap: normal; border-radius: 10px; }
+@media (max-width: 900px) {   /* small screens: let the table scroll sideways instead of squeezing */
+  table { table-layout: auto; min-width: 1000px; }
+}
+thead th { position: sticky; top: 0; background: var(--color-surface-offset);
+  color: var(--color-text-muted); font-weight: 500; font-size: var(--text-xs);
+  text-align: left; padding: 0.6rem 0.75rem; z-index: 1; vertical-align: bottom;
+  border-bottom: 1px solid var(--color-border); }
+tbody td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--color-divider);
+  vertical-align: top; }
+td.size, td.fmt, tbody td:nth-child(8) { white-space: nowrap; }
+tbody tr:hover { background: var(--color-surface-2); }
+td.char, td.file { font-weight: 500; }
+td.alts { color: var(--color-text-muted); font-family: var(--font-mono); font-size: var(--text-xs); }
+td.alts .ai { white-space: nowrap; }
+td.size, td.fmt { color: var(--color-text-muted); font-family: var(--font-mono); font-size: var(--text-xs); }
+td.name { font-family: var(--font-mono); font-size: var(--text-xs); cursor: pointer; }
+td.name:hover { color: var(--color-primary); }
+td.cross { color: var(--color-blue); font-size: var(--text-xs); }
+.badge.shared { color: var(--color-warn); background: color-mix(in oklab, var(--color-warn) 14%, transparent); }
+.badge.allc { color: var(--color-good); background: color-mix(in oklab, var(--color-good) 14%, transparent); }
+.more { display: block; width: 100%; padding: var(--space-3); font-size: var(--text-sm);
+  color: var(--color-text-muted); }
+.more:hover { color: var(--color-text); background: var(--color-surface-2); }
+
+/* ---------- upload & name ---------- */
+.upload { display: none; margin-top: var(--space-6); }
+.upload.show { display: block; }
+.upload h2 { font-size: var(--text-lg); }
+.upload h3 { font-size: var(--text-lg); margin-top: var(--space-8); }
+.upintro { font-size: var(--text-sm); color: var(--color-text-muted); margin-top: var(--space-2); }
+.drop { margin-top: var(--space-4); border: 1.5px dashed var(--color-border); border-radius: var(--radius-lg);
+  background: var(--color-surface); padding: var(--space-6) var(--space-4); text-align: center; cursor: pointer; }
+.drop:hover, .drop.over { border-color: var(--color-primary); }
+.drop b { display: block; font-size: var(--text-base); }
+.drop span { display: block; font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 2px; }
+input[type=file] { font-size: var(--text-xs); color: var(--color-text-muted); max-width: 100%; }
+.flist { margin-top: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+.fitem { display: flex; align-items: center; gap: var(--space-3); background: var(--color-surface-2);
+  border: 1px solid var(--color-divider); border-radius: var(--radius-md); padding: var(--space-2) var(--space-3); }
+.fitem .fname { font-family: var(--font-mono); font-size: var(--text-xs); overflow-wrap: anywhere; flex: 1; min-width: 0; }
+.fitem .fdims { color: var(--color-text-muted); font-size: var(--text-xs); font-family: var(--font-mono); white-space: nowrap; }
+.rm { color: var(--color-text-faint); font-size: var(--text-sm); padding: 0 0.35rem; }
+.rm:hover { color: var(--color-bad); }
+.thumb { width: 44px; height: 44px; border-radius: var(--radius-sm); flex: none;
+  background: repeating-conic-gradient(rgba(255,255,255,.07) 0 25%, transparent 0 50%) 0 0 / 10px 10px; }
+.idbtn { margin-top: var(--space-4); background: var(--color-primary); color: #14161b; font-weight: 700;
+  border-radius: var(--radius-md); padding: 0.55rem 1.3rem; font-size: var(--text-sm); }
+.idbtn:disabled { opacity: 0.4; cursor: not-allowed; }
+.idcard { margin-top: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-4); }
+.idhead { display: flex; gap: var(--space-3); align-items: center; }
+.idhead .fname, .cand .fname { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.cand .fname { font-size: var(--text-xs); }
+.verdict { display: inline-block; font-size: var(--text-xs); font-weight: 500; margin-top: 2px; }
+.v-exact, .v-strong { color: var(--color-good); }
+.v-ok { color: var(--color-warn); }
+.v-weak { color: var(--color-bad); }
+.v-none { color: var(--color-text-muted); }
+.idnote { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: var(--space-2); max-width: 75ch; }
+.cand { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) 0;
+  border-top: 1px solid var(--color-divider); margin-top: var(--space-2); flex-wrap: wrap; }
+.candmain { flex: 1; min-width: 230px; }
+.score { font-size: var(--text-xs); color: var(--color-text-muted); font-family: var(--font-mono); }
+.idrow { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 2px; }
+.idrow b { color: var(--color-text); }
+.usename { background: var(--color-surface-offset); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 0.35rem 0.8rem; font-size: var(--text-xs); font-family: var(--font-mono); white-space: nowrap; }
+.usename:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.usename:disabled { opacity: 0.4; cursor: not-allowed; }
+.bigdrop { padding: 30px 20px; }
+.bigdrop b { font-size: var(--text-lg); }
+.exportbar { margin-top: var(--space-4); background: var(--color-surface-2); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-4); }
+.exrow { display: flex; gap: var(--space-3); align-items: center; flex-wrap: wrap; }
+.exrow label { font-size: var(--text-xs); color: var(--color-text-muted); display: flex; align-items: center; gap: 8px; }
+.exrow input[type=text] { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md);
+  padding: 0.45rem 0.6rem; font-size: var(--text-sm); color: var(--color-text); }
+.advanced { margin-top: var(--space-5); }
+.advanced summary { cursor: pointer; font-weight: 600; font-size: var(--text-sm); }
+.advanced[open] summary { margin-bottom: var(--space-2); }
+.brow { display: flex; gap: var(--space-3); background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-3); margin-top: var(--space-2); }
+.brow.skipped { opacity: 0.55; }
+.brow.conflict { border-color: var(--color-bad); }
+.bmain { flex: 1; min-width: 0; }
+.btop { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.btop .fname { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.bpick { display: flex; align-items: center; gap: var(--space-2); margin-top: 6px; flex-wrap: wrap; }
+.slotrow { display: flex; align-items: center; gap: var(--space-2); margin: 8px 0 2px; flex-wrap: wrap; }
+.slotrow select { background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: 3px 6px; max-width: 200px; }
+.slotrow .slotcost { max-width: 380px; }
+.slotbar { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; margin: 10px 0 0;
+  background: var(--color-surface-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px 12px; }
+.slotbar select { background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm); padding: 4px 8px; max-width: 220px; }
+.slotbar[hidden] { display: none; }
+.bname { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-good); overflow-wrap: anywhere; cursor: pointer; }
+.mini { background: var(--color-surface-offset); border: 1px solid var(--color-border); border-radius: var(--radius-sm);
+  padding: 0.25rem 0.6rem; font-size: var(--text-xs); white-space: nowrap; }
+.mini:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
+.mini:disabled { opacity: 0.4; cursor: not-allowed; }
+.manualgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
+.manualgrid label { display: block; font-size: var(--text-xs); color: var(--color-text-muted); }
+.manualgrid select { width: 100%; margin-top: 4px; background: var(--color-surface); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: 0.5rem 0.6rem; font-size: var(--text-sm); }
+.mtarget { margin-top: var(--space-4); background: var(--color-surface-2); border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg); padding: var(--space-4); }
+.mfilename { font-family: var(--font-mono); font-size: var(--text-base); cursor: pointer; overflow-wrap: anywhere; }
+.mfilename:hover { color: var(--color-primary); }
+.mfilebox { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-4); flex-wrap: wrap; }
+.mfilebox .fname { font-family: var(--font-mono); font-size: var(--text-xs); }
+
+/* toast */
+#toast { position: fixed; bottom: var(--space-6); left: 50%; transform: translate(-50%, 20px);
+  background: var(--color-surface-offset); color: var(--color-text); border: 1px solid var(--color-border);
+  border-radius: var(--radius-md); padding: 0.5rem 1rem; font-size: var(--text-sm);
+  opacity: 0; pointer-events: none; transition: opacity var(--transition-interactive), transform var(--transition-interactive); z-index: 50; }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+footer { margin-top: var(--space-10); padding-top: var(--space-4);
+  border-top: 1px solid var(--color-divider); font-size: var(--text-xs); color: var(--color-text-faint); }
+
+@media (max-width: 640px) {
+  .toolbar input[type=search] { flex: 1 1 100%; }
+  .count { margin-left: 0; width: 100%; }
+  .tfile { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>P+ Rollback-Safe <span class="gold">Custom Texture Tool</span></h1>
+    <p class="sub">Drop your modded skins and get them renamed to the filenames Dolphin's Load Custom Textures expects. Only you see them, so netplay stays in sync. The Database tab lists every costume texture if you want to look one up.</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-upload" aria-selected="true">Upload & name</button>
+    <button class="tab" role="tab" id="tab-full" aria-selected="false">Database</button>
+  </div>
+
+  <!-- full table -->
+  <div class="full" id="full">
+    <div class="toolbar" id="toolbar">
+      <input type="search" id="q" placeholder="Search character, part, costume, filename…" aria-label="Search">
+      <select id="charsel" aria-label="Character"></select>
+      <select id="statsel" aria-label="Name status">
+        <option value="">All name statuses</option>
+        <option value="0">Computed</option>
+        <option value="1">Mipmapped (unverified)</option>
+        <option value="2">Paletted (unverified)</option>
+        <option value="3">Unresolved</option>
+      </select>
+      <label class="check" id="sharedwrap"><input type="checkbox" id="hideshared"> Hide shared textures</label>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="tablewrap">
+      <table aria-label="Costume textures">
+        <thead><tr>
+          <th>Character</th><th>Part</th><th>Costume file (select-screen spot)</th><th>Shared</th>
+          <th>Size</th><th>Fmt</th><th>Dolphin filename (click to copy)</th><th>Status</th><th>Also used by</th>
+        </tr></thead>
+        <tbody id="costbody"></tbody>
+      </table>
+      <button class="more" id="costmore">Show more rows</button>
+    </div>
+  </div>
+
+  <!-- upload & name -->
+  <div class="upload" id="upload">
+    <h2>Upload & name</h2>
+    <p class="upintro">Everything here runs in your browser — your files never leave your computer. Filenames are P+ — P+ overrides base Brawl wherever the two differ.</p>
+
+    <div class="drop bigdrop" id="drop-edited">
+      <b>Drop your modded textures here</b>
+      <span>PNG, JPG, BMP, WebP — or a Brawl/P+ <strong>.pac / .pcs</strong> file: the textures inside are extracted and named automatically (it skips tiny placeholder textures under 8px, the rare C14X2 format, stops at 4000 textures per file, and auto-skips textures the data says are the same file for every costume — one click un-skips those if your mod changes one). Everything comes back renamed for Dolphin in one zip, ready for the custom-textures folder. Anything the page isn't sure about waits for your review instead of being renamed blindly.</span>
+      <input type="file" id="file-edited" accept="image/png,image/jpeg,image/bmp,image/webp,.pac,.pcs" multiple hidden>
+    </div>
+    <div class="idnote" id="uperrors" hidden></div>
+    <div class="flist" id="edited-list"></div>
+
+    <div class="slotbar" id="slotbar" hidden>
+      <b>Set every included texture to a slot</b>
+      <select id="gchar" aria-label="character"></select>
+      <select id="gslot" aria-label="costume"></select>
+      <button class="mini" id="gapply">set names</button>
+      <span class="score" id="gresult"></span>
+    </div>
+
+    <div id="id-results"></div>
+
+    <div class="exportbar" id="exportbar" hidden>
+      <div class="exrow">
+        <label>folder name inside the zip <input type="text" id="zipfolder" value="My texture mod" maxlength="60" spellcheck="false"></label>
+        <button class="idbtn" id="zipbtn" disabled>Download ready textures (.zip)</button>
+      </div>
+      <p class="score" id="zipcounts" style="margin-top:8px"></p>
+      <p class="idnote" style="margin-top:4px">unzip it into Dolphin's <code>User\Load\Textures\</code> folder, then turn on Graphics → Advanced → <strong>Load Custom Textures</strong>. Files that still need a name are left out of the zip until you pick one.</p>
+    </div>
+
+  </div>
+
+  <footer>
+    Built from a Brawl disc and a Project+ build. Names come from the textures' own data (Dolphin hashes them), so two costumes showing the same filename means the texture is genuinely identical.
+  </footer>
+</div>
+
+<div id="toast" role="status"></div>
+
+<script src="data.js?v=7"></script>
+<script src="pac.js?v=1"></script>
+<script>
+const S = DATA.stats;
+document.getElementById('stats').innerHTML =
+  `<span class="stat"><b>${S.costume_rows.toLocaleString()}</b> costume textures</span>` +
+  `<span class="stat"><b>${S.characters}</b> characters</span>` +
+  `<span class="stat"><b>${S.shared_rows.toLocaleString()}</b> shared</span>`;
+
+/* ---------------- data ---------------- */
+const CK = ['character','part','label','alts','shared','width','height','format','dolphin_name','name_status','alternate_names','also_used_by','material'];
+const cost = DATA.costumes.map(a => { const o = {}; CK.forEach((k,i) => o[k] = a[i]); return o; });
+const STATUS_TXT = {0:'computed', 1:'mipmapped', 2:'paletted', 3:'unresolved'};
+
+const DISPLAY = {
+  captain:'Captain Falcon', dedede:'King Dedede', diddy:'Diddy Kong', donkey:'Donkey Kong',
+  falco:'Falco', fighter:'Common fighter files', fox:'Fox', gamewatch:'Mr. Game & Watch',
+  ganon:'Ganondorf', gkoopa:'Giga Bowser', ike:'Ike', item:'Items', kirby:'Kirby',
+  knuckles:'Knuckles (P+)', koopa:'Bowser', link:'Link', lucario:'Lucario', lucas:'Lucas',
+  luigi:'Luigi', mario:'Mario', marth:'Marth', metaknight:'Meta Knight', mewtwo:'Mewtwo (P+)',
+  ness:'Ness', peach:'Peach', pikachu:'Pikachu', pikmin:'Olimar', pit:'Pit',
+  pokefushigisou:'Ivysaur', pokelizardon:'Charizard', poketrainer:'Pokémon Trainer',
+  pokezenigame:'Squirtle', popo:'Ice Climbers', purin:'Jigglypuff', robot:'R.O.B.',
+  roy:'Roy (P+)', samus:'Samus', sheik:'Sheik', snake:'Snake', sonic:'Sonic',
+  szerosuit:'Zero Suit Samus', toonlink:'Toon Link', wario:'Wario', warioman:'Wario-Man',
+  wolf:'Wolf', yoshi:'Yoshi', zakoball:'Alloy (Ball)', zakoboy:'Alloy (Boy)',
+  zakochild:'Alloy (Child)', zakogirl:'Alloy (Girl)', zelda:'Zelda'
+};
+const dname = c => DISPLAY[c] || c;
+
+const LABEL_ORDER = ['body','face','eye','mouth/teeth','skin','hair','head','helmet','hat',
+  'scarf','equipment','hands/arms','feet/shoes','legs','clothing','cape/cloak','belt','frill',
+  'canopy','tail','wings','ear','shell','metal','egg','weapon','specular','reflection','glow',
+  'highlight','leaf','plain white (siro)','shadow','edge','environment','nose'];
+
+/* which costumes use each part (own costumes; _en collapsed onto its base slot) */
+const partUsage = {};
+for (const r of cost) {
+  const pu = partUsage[r.character] = partUsage[r.character] || {};
+  for (const a of r.alts.split(', ')) {
+    const slot = a.replace(/ \(en\)$/, '');
+    if (!/^\d+$/.test(slot)) continue;  // skip hats and AltR/AltZ variant slots
+    for (const p of r.part.split(' | ')) (pu[p] = pu[p] || new Set()).add(slot);
+  }
+}
+/* true when this exact texture is the one used by every numbered costume that has this part */
+function identicalEverywhere(r) {
+  const parts = r.part.split(' | ');
+  if (parts.length > 1) return false;
+  const use = partUsage[r.character] && partUsage[r.character][parts[0]];
+  if (!use || use.size < 3) return false;
+  const cov = new Set(r.alts.split(', ').map(a => a.replace(/ \(en\)$/, '')).filter(a => /^\d+$/.test(a)));
+  return cov.size >= use.size && [...use].every(x => cov.has(x));
+}
+
+/* ---- character select order ----
+ * The number in a costume file name (FitCaptain03) is NOT its spot on the character
+ * select screen. P+ stores the real order per character in /info/costumeslots/NN.masq:
+ * one entry per spot, in order, each naming the costume file it loads. Portraits and
+ * stock icons are numbered by spot, so spot -> file has to go through this table. */
+const MASQ_ORDER = {"0":[0,6,3,2,5,4,15,20,21,22,23,24,25,26,30,31,32,33],"1":[0,4,1,3,2,5,20,21,22,23,24,25,30,31,32,33,34,35],"2":[0,1,3,5,6,4,7,8,9,20,21,22,23,24,25,26],"3":[0,1,2,3,4,5,6,20,23,27,30,31,32,33,35,36,37,38],"4":[0,1,2,3,4,5,6,20,23,27,30,31,32,33,35,36,37,38],"5":[0,1,3,4,5,6,7,8,11,20,21,22,23,30,31,32,33,34],"6":[0,4,3,1,2,5,6,7,20,21,22,23,24,30,31,32,33,34],"7":[0,4,1,2,3,5,6,7,8,20,21,22,23,24,25],"8":[0,1,2,3,4,5,6,7,8,9,10,11,20,21,22,23,24,25],"9":[0,5,1,3,4,6,7,20,21,22,23,30,31,32,33],"10":[0,4,1,2,3,5,6,20,30,31,32,33,34,40,41,42,43,44],"11":[0,5,4,2,3,6,7,8,9,10,20,21,22,23,24],"12":[0,4,1,3,5,6,7,8,9,10,20,21,22,23,24],"13":[0,5,1,3,2,4,6,7,8,20,19,30,31,32,33],"14":[0,1,3,5,2,4,6,7,8,20,21,22,23,24,25],"15":[0,1,3,5,2,4,6,7,8,20,21,22,23,24,25],"16":[0,1,3,4,2,5,6,7,20,21,22,23,24,25,30,31,32,33],"17":[0,1,2,4,5,3,6,20,21,22,23,30,31,32,33],"18":[0,1,4,3,2,5,6,7,8,9,10,11,14,15,20,21,22,23],"19":[0,5,3,1,2,4,6,7,8,20,21,22,23,24,25],"20":[0,4,3,2,1,5,20,21,22,23,24,25,30,31,32,33,34,35],"21":[6,7,10,8,11,9,0,1,3,2,5,4,20,21,22,23,24,25],"22":[0,4,1,2,3,5,8,9,20,21,22,23,24,30,31,32,33,34],"23":[0,4,1,2,3,20,5,6,7,8,30,31,32,33,34],"24":[0,4,1,5,2,3,6,7,20,21,30,31,32,33,34],"25":[0,4,1,3,2,5,20,21,22,23,24,25,30,31,32,33,34,35],"26":[0,5,4,6,2,3,7,8,9,10,20,21,22,23,24],"27":[0,1,2,3,4],"28":[0,1,3,2,4,5,6,7,8,9,20,21,22,23,24],"29":[0,2,1,3,4,5,6,7,8,9,20,21,22,23,24],"30":[0,1,2,3,4,5,6,7,20,21,22,23,24,30,31,32,33,34],"31":[0,6,2,5,3,4,7,8,9,10,20,21,22,23,24],"32":[0,1,2,4,5,6,7,8,20,21,22,23,24,30,31,32,33,34],"33":[0,5,1,3,2,4,6,20,21,22,23,30,31,32,33],"34":[0,6,5,4,3,2,20,21,22,23,30,31,32,33,34,35],"35":[0,1,4,3,2,5,6,7,8,9,10,11,12,13,14],"36":[0,1,3,4,5,6,7,20,21,22,23,24,25,30,31,32,33,34],"37":[0,1,4,2,3,5,20,21,22,23,24,25,30,31,32,33,34,35],"38":[0,1,3,4,2,5,6,7,20,21,22,23,24,30,31,32,33,34],"39":[0,1,4,2,5,6,7,10,20,21,22,23,24,30,31,32,33,34],"40":[0,2,1,3,4,5,20,21,22,23,24,30,31,32,33],"41":[0,1,2,3,4,5,6,7,8,20,21,22,23,24,25],"42":[0,1,2,3,9,10,11,12,20,21,22,23,24,30,31,32,33,34]};
+const MASQ_ID = {mario:0,donkey:1,link:2,samus:3,szerosuit:4,yoshi:5,kirby:6,fox:7,pikachu:8,luigi:9,captain:10,ness:11,
+  koopa:12,gkoopa:12,peach:13,zelda:14,sheik:15,popo:16,marth:17,gamewatch:18,falco:19,ganon:20,wario:21,warioman:21,
+  metaknight:22,pit:23,pikmin:24,lucas:25,diddy:26,poketrainer:27,pokelizardon:28,pokezenigame:29,pokefushigisou:30,
+  dedede:31,lucario:32,ike:33,robot:34,purin:35,toonlink:36,wolf:37,snake:38,sonic:39,mewtwo:40,roy:41,knuckles:42};
+function cssOrder(ch) { const id = MASQ_ID[ch]; return id === undefined ? null : (MASQ_ORDER[id] || null); }
+const pad2 = n => String(n).padStart(2, '0');
+function ordinal(n) { const v = n % 100, t = ['th', 'st', 'nd', 'rd']; return n + (t[(v - 20) % 10] || t[v] || t[0]); }
+/* spot index (0-based) of a costume file on the select screen, or -1 */
+function cssSpotOf(ch, file) { const o = cssOrder(ch); return o && /^\d+$/.test(file) ? o.indexOf(+file) : -1; }
+
+/* UI portraits are stored 1-based — show them 00-based so the default skin's
+ * portrait reads costume 00, matching its fighter slot */
+function uiCost(s) { return String(s - 1).padStart(2, '0'); }
+function slotSortKey(s) {
+  if (/^\d+$/.test(s)) return [0, parseInt(s, 10)];
+  if (s === 'AltR') return [1, 0];
+  if (s === 'AltZ') return [1, 1];
+  return [2, 0];
+}
+const partRank = r => {
+  const i = LABEL_ORDER.indexOf(r.label);
+  return i === -1 ? 99 : i;
+};
+
+const el = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[m]));
+
+/* ---------------- tabs ---------------- */
+let tab = 'upload';
+function setTab(t) {
+  tab = t;
+  el('tab-upload').setAttribute('aria-selected', t === 'upload');
+  el('upload').classList.toggle('show', t === 'upload');
+  el('tab-full').setAttribute('aria-selected', t === 'full');
+  el('full').style.display = t === 'full' ? 'block' : 'none';
+  if (t === 'full' && !el('costbody').children.length) renderFull();
+}
+el('tab-upload').onclick = () => setTab('upload');
+el('tab-full').onclick = () => setTab('full');
+
+/* ---------------- full table ---------------- */
+const charsel = el('charsel');
+['', ...new Set(cost.map(r => r.character))].sort((a, b) => dname(a).localeCompare(dname(b))).forEach(c => {
+  const o = document.createElement('option');
+  o.value = c; o.textContent = dname(c);
+  charsel.appendChild(o);
+});
+const LIMIT = 500;
+
+function filtered() {
+  const q = el('q').value.trim().toLowerCase();
+  const ch = charsel.value;
+  const st = el('statsel').value;
+  const hide = el('hideshared').checked;
+  return cost.filter(r => {
+    if (ch && r.character !== ch) return false;
+    if (st !== '' && String(r.name_status) !== st) return false;
+    if (hide && r.shared === 'yes') return false;
+    if (q) {
+      const hay = (dname(r.character) + ' ' + r.character + ' ' + r.part + ' ' + (r.label||'') + ' ' + (r.alts||'') + ' ' +
+        r.dolphin_name + ' ' + (r.alternate_names||'') + ' ' + altsWithSpots(r)).toLowerCase();
+      if (!q.split(/\s+/).every(w => hay.includes(w))) return false;
+    }
+    return true;
+  });
+}
+
+/* costume file list with each file's spot on the character select screen */
+function altsWithSpots(r) {
+  return r.alts.split(', ').map(a => {
+    const sp = cssSpotOf(r.character, a.replace(/ \(en\)$/, ''));
+    return sp >= 0 ? `${a} (spot ${sp + 1})` : a;
+  }).join(', ');
+}
+function altsHTML(r) {   // each file stays on one line; the list only wraps between files
+  return r.alts.split(', ').map(a => {
+    const sp = cssSpotOf(r.character, a.replace(/ \(en\)$/, ''));
+    return `<span class="ai">${esc(sp >= 0 ? `${a} (spot ${sp + 1})` : a)}</span>`;
+  }).join(', ');
+}
+function minSpot(r) {
+  let m = 999;
+  for (const a of r.alts.split(', ')) { const sp = cssSpotOf(r.character, a.replace(/ \(en\)$/, '')); if (sp >= 0 && sp < m) m = sp; }
+  return m;
+}
+function fullRowHTML(r) {
+  return `<tr>
+    <td class="char">${esc(dname(r.character))}</td>
+    <td>${esc(r.label || '—')}<br><span class="traw">${esc(r.part)}</span></td>
+    <td class="alts">${altsHTML(r)}</td>
+    <td>${r.shared === 'yes' ? '<span class="badge shared">shared</span>' : ''}${identicalEverywhere(r) ? '<br><span class="badge allc">one for all costumes</span>' : ''}</td>
+    <td class="size">${r.width}x${r.height}</td>
+    <td class="fmt">${esc(r.format)}</td>
+    <td class="name" data-copy="${esc(r.dolphin_name)}">${esc(r.dolphin_name).replace(/_/g, '_<wbr>')}</td>
+    <td><span class="badge s${r.name_status}">${STATUS_TXT[r.name_status]}</span></td>
+    <td class="cross">${esc(r.also_used_by || '')}</td>
+  </tr>`;
+}
+
+function renderFull() {
+  const rows = filtered().sort((a, b) => dname(a.character).localeCompare(dname(b.character)) || minSpot(a) - minSpot(b) || a.alts.localeCompare(b.alts) || a.part.localeCompare(b.part));
+  const body = el('costbody');
+  const shown = rows.slice(0, LIMIT);
+  body.innerHTML = shown.map(fullRowHTML).join('');
+  const total = rows.length;
+  el('count').textContent = total > LIMIT
+    ? `showing ${LIMIT.toLocaleString()} of ${total.toLocaleString()} — refine or pick a character`
+    : `${total.toLocaleString()} row${total === 1 ? '' : 's'}`;
+  const more = el('costmore');
+  more.style.display = total > LIMIT ? 'block' : 'none';
+  more.dataset.offset = LIMIT;
+  more.textContent = `Show ${Math.min(1000, total - LIMIT).toLocaleString()} more rows (${(total - LIMIT).toLocaleString()} left)`;
+}
+
+el('q').addEventListener('input', renderFull);
+charsel.addEventListener('change', renderFull);
+el('statsel').addEventListener('change', renderFull);
+el('hideshared').addEventListener('change', renderFull);
+el('costmore').onclick = e => {
+  const rows = filtered();
+  const off = +e.target.dataset.offset;
+  const next = rows.slice(off, off + 1000);
+  el('costbody').insertAdjacentHTML('beforeend', next.map(fullRowHTML).join(''));
+  e.target.dataset.offset = off + 1000;
+  const left = rows.length - (+e.target.dataset.offset);
+  if (left <= 0) e.target.style.display = 'none';
+  else e.target.textContent = `Show ${Math.min(1000, left).toLocaleString()} more rows (${left.toLocaleString()} left)`;
+};
+el('full').addEventListener('click', e => {
+  const t = e.target.closest('td.name');
+  if (t) copyText(t.dataset.copy);
+});
+
+/* ---------------- copy + toast ---------------- */
+function copyText(s) {
+  const done = () => toast('Copied: ' + s);
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(s).then(done, () => fallbackCopy(s, done));
+  } else fallbackCopy(s, done);
+}
+function fallbackCopy(s, done) {
+  const ta = document.createElement('textarea');
+  ta.value = s; document.body.appendChild(ta); ta.select();
+  try { document.execCommand('copy'); done(); } catch (_) {}
+  ta.remove();
+}
+let toastTimer;
+function toast(msg) {
+  const t = el('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+}
+
+/* ---------------- upload & name ---------------- */
+const THUMB = 32;
+const UP = { edited: [], orig: [], origRev: 0, errors: [] };
+// strict: hex hashes only — unresolved placeholders like <palettehash> can never be a usable filename
+const DOLPHIN_NAME = /^tex\d+_\d+x\d+(_m)?_[0-9a-f]{8,}(_[0-9a-f]{8,})?_\d+\.png$/i;
+
+/* every known filename (incl. alternate candidates) -> db rows */
+const byFile = new Map();
+for (const r of cost) {
+  const addName = (k, alt) => {
+    k = String(k).trim().toLowerCase();
+    if (!k) return;
+    let e = byFile.get(k);
+    if (!e) { e = { rows: [], alt: false }; byFile.set(k, e); }
+    e.rows.push(r);
+    if (alt) e.alt = true;
+  };
+  addName(r.dolphin_name, false);
+  if (r.alternate_names) String(r.alternate_names).split(/[,|]/).forEach(n => addName(n, true));
+}
+
+async function decodeImage(file) {
+  // NB: Image element decode, not createImageBitmap — the <img> downscale path
+  // matches the built-in reference data (verified empirically), so similarity
+  // scores line up with the originals.
+  return await new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error('could not decode'));
+    im.src = URL.createObjectURL(file);
+  });
+}
+
+function analyze(bmp, file) {
+  const n = THUMB * THUMB;
+  const c = document.createElement('canvas'); c.width = c.height = THUMB;
+  const ctx = c.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#808080'; ctx.fillRect(0, 0, THUMB, THUMB);
+  ctx.drawImage(bmp, 0, 0, THUMB, THUMB);
+  const d = ctx.getImageData(0, 0, THUMB, THUMB).data;
+  const vec = new Float32Array(n);   // luminance
+  for (let i = 0; i < n; i++)
+    vec[i] = 0.2126 * d[i*4] + 0.7152 * d[i*4+1] + 0.0722 * d[i*4+2];
+  let mean = 0; for (let i = 0; i < n; i++) mean += vec[i]; mean /= n;
+  let sd = 0; for (let i = 0; i < n; i++) sd += (vec[i] - mean) * (vec[i] - mean);
+  const std = Math.sqrt(sd / n);
+  const p = document.createElement('canvas'); p.width = p.height = 48;
+  p.getContext('2d').drawImage(bmp, 0, 0, 48, 48);
+  return { file, name: file.name, w: bmp.width, h: bmp.height, vec, phash: pixelHash(bmp), mean,
+    std, flat: std < 7, prev: p.toDataURL('image/png') };
+}
+
+// hash of the full-resolution decoded pixels — grounds "exact copy" on real pixels
+// (built-ins have no full-res data, so they never claim exactness)
+function pixelHash(bmp) {
+  try {
+    const fc = document.createElement('canvas'); fc.width = bmp.width; fc.height = bmp.height;
+    const fctx = fc.getContext('2d', { willReadFrequently: true });
+    fctx.drawImage(bmp, 0, 0);
+    const fd = fctx.getImageData(0, 0, fc.width, fc.height).data;
+    let h1 = 0x811c9dc5, h2 = 0x9e3779b9;
+    for (let i = 0; i < fd.length; i += 4) {
+      h1 = Math.imul(h1 ^ fd[i], 0x01000193);
+      h2 = Math.imul(h2 ^ (fd[i+1] | (fd[i+2] << 8) | (fd[i+3] << 16)), 0x85ebca6b);
+    }
+    return (h1 >>> 0).toString(36) + ':' + (h2 >>> 0).toString(36) + ':' + fd.length;
+  } catch (_) { return null; }
+}
+
+function simScore(A, B) {
+  const n = A.vec.length;
+  if (A.flat || B.flat) {
+    let mad = 0; for (let i = 0; i < n; i++) mad += Math.abs(A.vec[i] - B.vec[i]);
+    return Math.max(0, 1 - (mad / n) / 40);
+  }
+  let dot = 0, na = 0, nb = 0;
+  for (let i = 0; i < n; i++) {
+    const x = A.vec[i] - A.mean, y = B.vec[i] - B.mean;
+    dot += x * y; na += x * x; nb += y * y;
+  }
+  if (na < 1e-6 || nb < 1e-6) return 0;
+  return Math.max(0, dot / Math.sqrt(na * nb));
+}
+
+function saveBlob(blob, name) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  toast('Saved as ' + name);
+}
+async function downloadAs(info, name) {
+  try {
+    const bytes = await pngBytes(info);
+    saveBlob(new Blob([bytes], { type: 'image/png' }), name);
+  } catch (_) { toast('could not read ' + info.name); }
+}
+
+function fileRowsHTML(name, src) {
+  const u = UI_INDEX && UI_INDEX[String(name).trim()];
+  if (u) {
+    const cost = u.s ? ` · costume ${uiCost(u.s)}` : '';
+    return `<div class="idinfo"><div class="idrow"><b>${esc(UI_TYPE_TXT[u.t] || u.t)}</b> · ${esc(u.c)}${cost} <span class="badge s0">computed — not dump-checked</span> <span class="score">${u.w}x${u.h}</span></div><div class="idnote" style="margin:0">Dolphin names this texture with or without an <code>_m</code> segment depending on a runtime setting — if it doesn't load in game, try <code>${esc(u.mvar)}</code></div></div>`;
+  }
+  const e = byFile.get(String(name).trim().toLowerCase());
+  if (!e) return src === 'pac'
+    ? '<div class="idnote" style="margin:0">not in the built-in character or UI lists — still exported under the computed name</div>'
+    : '<div class="idnote" style="margin:0">not in the character list (still a valid name if it came from your dump)</div>';
+  const seen = new Set();
+  const rows = e.rows.filter(r => { const k = r.character + '|' + r.part + '|' + r.dolphin_name; if (seen.has(k)) return false; seen.add(k); return true; });
+  return `<div class="idinfo">${rows.map(r => `<div class="idrow"><b>${esc(dname(r.character))}</b> · ${esc(r.label || r.part)} <span class="traw">${esc(r.part)}</span> <span class="badge s${r.name_status}">${STATUS_TXT[r.name_status]}</span> <span class="score">${r.width}x${r.height}</span> · costumes ${esc(r.alts)}</div>`).join('')}${e.alt ? '<div class="idnote" style="margin:0">matched via an alternate candidate name — not dump-verified</div>' : ''}</div>`;
+}
+
+function verdictFor(E, cands) {
+  if (!cands.length) return { cls: 'none', txt: 'add originals above to identify' };
+  const top = cands[0];
+  // exact = identical decoded pixels, proven by the full-res pixel hash.
+  // built-in originals have no full-res data, so they never claim exactness.
+  if (E.phash && top.O.phash && E.w === top.O.w && E.h === top.O.h && E.phash === top.O.phash)
+    return { cls: 'exact', txt: 'exact copy of this original — same pixels' };
+  if (E.flat || top.O.flat)
+    return { cls: 'weak', txt: 'flat/simple texture — not enough detail to identify reliably' };
+  if (top.s >= 0.93 && (cands.length === 1 || top.s - cands[1].s >= 0.04))
+    return { cls: 'strong', txt: 'strong match' };
+  if (top.s >= 0.8) return { cls: 'ok', txt: 'possible match — double-check before trusting' };
+  return { cls: 'weak', txt: 'no confident match — pick a slot below' };
+}
+
+/* ---------------- built-in originals (Brawl + P+ fighter files) + UI textures ---------------- */
+let builtinPool = null;
+let UI_INDEX = null;    // ui.js dolphin name (and _m variant) -> {t,c,s,w,h,name,mvar}
+let UI_LIST = null;     // [{t, items:[...]}] for the manual UI picker
+const UI_TYPE_TXT = {
+  b: 'battle portrait', r: 'CSS / result-screen portrait', s: 'in-match stock icon',
+  d: 'stock-count digit', f: 'CSS face icon', k: 'CSS franchise icon',
+};
+
+function loadScript(src) {
+  return new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => res();
+    s.onerror = () => rej(new Error('load failed'));
+    document.head.appendChild(s);
+  });
+}
+
+function ensureBuiltin() {
+  if (builtinPool) return Promise.resolve(builtinPool);
+  return Promise.all([
+    typeof BUILTIN !== 'undefined' ? Promise.resolve() : loadScript('builtin.js?v=1'),
+    typeof UI !== 'undefined' ? Promise.resolve() : loadScript('ui.js?v=1'),
+  ]).then(() => {
+    const n = THUMB * THUMB;
+    const cv = document.createElement('canvas'); cv.width = cv.height = THUMB;
+    const cx = cv.getContext('2d');
+    const texsFromBytes = (bytes, i) => {
+      const vec = new Float32Array(n);
+      const imgd = cx.createImageData(THUMB, THUMB);
+      let mean = 0;
+      for (let p = 0; p < n; p++) {
+        const v = bytes[i * n + p];
+        vec[p] = v; mean += v;
+        imgd.data[p*4] = imgd.data[p*4+1] = imgd.data[p*4+2] = v; imgd.data[p*4+3] = 255;
+      }
+      mean /= n;
+      let sd = 0; for (let p = 0; p < n; p++) sd += (vec[p] - mean) * (vec[p] - mean);
+      const std = Math.sqrt(sd / n);
+      cx.putImageData(imgd, 0, 0);
+      const p48 = document.createElement('canvas'); p48.width = p48.height = 48;
+      p48.getContext('2d').drawImage(cv, 0, 0, 48, 48);
+      return { vec, mean, std, flat: std < 7, prev: p48.toDataURL('image/png'), phash: null };
+    };
+    const pool = [];
+    const B = BUILTIN;
+    const bbytes = Uint8Array.from(atob(B.data), c => c.charCodeAt(0));
+    const btexs = [];
+    for (let ti = 0; ti < B.n; ti++) btexs.push(texsFromBytes(bbytes, ti));
+    for (let ni = 0; ni < B.idx.length; ni++) {
+      const ti = B.idx[ni];
+      if (ti < 0) continue;
+      pool.push({ ...btexs[ti], w: B.dims[ti][0], h: B.dims[ti][1], name: B.names[ni] });
+    }
+    // ---- UI textures (portraits, stock icons, CSS icons) ----
+    if (typeof UI !== 'undefined') {
+      const U = UI;
+      const ubytes = Uint8Array.from(atob(U.data), c => c.charCodeAt(0));
+      UI_INDEX = {};
+      const groups = {};
+      for (let i = 0; i < U.n; i++) {
+        const w = U.dims[i][0], h = U.dims[i][1];
+        const m = U.meta[i];
+        const ent = { t: m.t, c: m.c, s: m.s, w, h, name: U.names[i], mvar: U.mvars[i] };
+        UI_INDEX[U.names[i]] = ent; UI_INDEX[U.mvars[i]] = ent;
+        (groups[m.t] = groups[m.t] || []).push(ent);
+        pool.push({ ...texsFromBytes(ubytes, i), w, h, name: U.names[i] });
+      }
+      UI_LIST = Object.entries(groups).map(([t, items]) => ({ t, items }));
+    }
+    builtinPool = pool;
+    return pool;
+  });
+}
+
+async function autoIdentify() {
+  const seq = ++identifySeq;
+  updateExportBar();
+  if (!UP.edited.length) { el('id-results').innerHTML = ''; return; }
+  let pool = UP.orig, fromBuiltin = false;
+  if (!pool.length) {
+    el('id-results').innerHTML = '<p class="score">loading the built-in original Brawl + P+ fighter textures…</p>';
+    try { pool = await ensureBuiltin(); fromBuiltin = true; }
+    catch (_) {
+      el('id-results').innerHTML = '<p class="score">could not load the built-in originals — try reloading the page</p>';
+      return;
+    }
+    if (seq !== identifySeq) return;
+  }
+  idPool = pool;
+  el('id-results').innerHTML = `<p class="score">matching ${UP.edited.length} file${UP.edited.length === 1 ? '' : 's'} against ${fromBuiltin ? pool.length + ' built-in' : UP.orig.length + ' of your'} original${(!fromBuiltin && UP.orig.length === 1) ? '' : 's'}…</p>`;
+  await new Promise(r => setTimeout(r, 30));
+  if (seq !== identifySeq) return; // files changed while we loaded — the newer call renders
+  const key = fromBuiltin ? 'builtin' : 'orig:' + UP.origRev;
+  for (const E of UP.edited) {
+    if (E.candsKey === key) continue;
+    E.cands = pool.map((O, oi) => ({ O, oi, s: simScore(E, O) }))
+      .sort((a, b) => b.s - a.s).slice(0, 3);
+    E.candsKey = key;
+    // a skipped or confirmed pick is the user's decision — it survives pool changes
+    if (!(E.pick && (E.pick.confirmed || E.pick.state === 'skipped'))) {
+      E.pick = computePick(E);
+      if (E.pick.state === 'review' && !E._optInit) { expandedRows.add(E); E._optInit = true; }
+    }
+  }
+  renderResults();
+}
+let idPool = UP.orig;
+let identifySeq = 0;
+const expandedRows = new Set();
+
+// auto-selection policy: files that already carry a Dolphin filename keep it;
+// exact / strong matches are accepted automatically; everything else waits for a choice
+function computePick(E) {
+  if (DOLPHIN_NAME.test(E.name))
+    return { state: 'ready', name: E.name, auto: true, note: 'already has a Dolphin filename — kept as-is' };
+  const cands = E.cands || [];
+  const v = verdictFor(E, cands);
+  const top = cands[0];
+  if (top && DOLPHIN_NAME.test(top.O.name) && (v.cls === 'exact' || v.cls === 'strong'))
+    return { state: 'ready', name: top.O.name, auto: true, v };
+  return { state: 'review', name: null, v };
+}
+
+function exportStates() {
+  const byName = new Map();
+  for (const E of UP.edited) {
+    if (E.pick && E.pick.state === 'ready' && E.pick.name) {
+      if (!byName.has(E.pick.name)) byName.set(E.pick.name, []);
+      byName.get(E.pick.name).push(E);
+    }
+  }
+  return byName;
+}
+// several files bound for the same name: if they are all pixel-identical the first
+// is exported and the rest are duplicates; if any differ it's a clash and none are
+// exported until the user picks one
+function rowExportState(E, byName) {
+  const p = E.pick;
+  if (!p || p.state !== 'ready' || !p.name) return { ok: false };
+  const others = byName.get(p.name) || [E];
+  if (others.length > 1) {
+    // duplicates need identical pixels AND identical dimensions
+    const allSame = others.every(o => o.phash && E.phash && o.phash === E.phash
+      && o.w === E.w && o.h === E.h);
+    if (allSame) return others[0] === E ? { ok: true } : { ok: false, dup: true };
+    return { ok: false, conflict: true };
+  }
+  return { ok: true };
+}
+
+function rowHTML(E, byName) {
+  const p = E.pick || { state: 'review', name: null };
+  const xs = rowExportState(E, byName);
+  const show = expandedRows.has(E);
+  // the texture's kind, if we know it: the picked name's UI entry, or the top candidate's
+  const uient = UI_INDEX && ((p.name && UI_INDEX[p.name]) ||
+    (E.cands && E.cands[0] && UI_INDEX[E.cands[0].O.name]));
+  // fighter-texture kind: the CSV label (body/face/eye/…) of the picked name or top candidate
+  const fkey = (p.name && byFile.get(String(p.name).trim().toLowerCase())) ||
+    (E.cands && E.cands[0] && byFile.get(String(E.cands[0].O.name).trim().toLowerCase()));
+  const flabel = fkey && fkey.rows.length ? fkey.rows[0].label : null;
+  const badge =
+    p.state === 'skipped' ? '<span class="verdict v-none">skipped — not included in the zip</span>'
+    : xs.conflict ? '<span class="verdict v-weak">name clash — another file uses this name too</span>'
+    : xs.dup ? '<span class="verdict v-none">duplicate — identical pixels, included once</span>'
+    : p.state === 'ready' ? (p.auto
+        ? `<span class="verdict v-strong">${E._pac ? 'name computed from the archive — will be included' : p.note ? 'existing filename kept — will be included' : 'matched — will be included'}</span>`
+        : '<span class="verdict v-strong">you picked this — will be included</span>')
+    : '<span class="verdict v-ok">needs review</span>';
+  return `<div class="brow ${p.state}${xs.conflict ? ' conflict' : ''}" data-ei="${UP.edited.indexOf(E)}">
+    <img class="thumb" src="${E.prev}" alt="">
+    <div class="bmain">
+      <div class="btop">
+        <span class="fname">${esc(E.name)}</span>
+        <span class="fdims">${E.w}x${E.h}</span>
+        ${badge}
+      </div>
+      <div class="bpick">
+        ${p.state === 'ready' && p.name
+          ? `<span class="bname" data-copy="${esc(p.name)}" title="click to copy">${esc(p.name).replace(/_/g, '_<wbr>')}</span>`
+          : '<span class="score">no name picked yet — pick a match below or pick a slot</span>'}
+        <button class="mini" data-act="toggle">${show ? 'hide options' : 'options'}</button>
+        ${p.state !== 'ready' && E._own ? '<button class="mini" data-act="ownname">use its own name</button>' : ''}
+        ${p.state === 'skipped'
+          ? '<button class="mini" data-act="unskip">un-skip</button>'
+          : '<button class="mini" data-act="skip">skip</button>'}
+        <button class="mini" data-act="dl" ${p.state === 'ready' && p.name ? '' : 'disabled'}>download</button>
+      </div>
+      ${p.v && p.state !== 'skipped' ? `<span class="verdict v-${p.v.cls}">${p.v.txt}</span>` : ''}
+      ${p.note ? `<div class="idnote">${esc(p.note)}</div>` : ''}
+      ${p.state === 'ready' && p.name && xs.ok ? fileRowsHTML(p.name, E._pac ? 'pac' : '') : ''}
+      ${show ? slotRowHTML(E, uient, fkey) : ''}
+      ${show ? (E.cands || []).map(c => candHTML2(E, c, p)).join('') : ''}
+    </div>
+  </div>`;
+}
+
+/* "use for a different slot" — pick the kind (detected when possible, editable
+ * always), the character, and the costume/texture; the computed Dolphin name
+ * for that slot is assigned. Works for UI textures (portraits, icons) and
+ * fighter model textures (body, face, eye, …). */
+const SLOT_CHARS = kind => {
+  if (kind.startsWith('u:')) {
+    const g = UI_LIST && UI_LIST.find(x => 'u:' + x.t === kind);
+    return g ? [...new Set(g.items.map(i => i.c))] : [];
+  }
+  if (kind.startsWith('f:')) {
+    const l = kind.slice(2);
+    return [...new Set(cost.filter(r => r.label === l && DOLPHIN_NAME.test(r.dolphin_name || '')).map(r => r.character))];
+  }
+  return [];
+};
+const SLOT_COSTS = (kind, ch) => {
+  if (kind.startsWith('u:')) {
+    const g = UI_LIST && UI_LIST.find(x => 'u:' + x.t === kind);
+    return g ? g.items.filter(i => i.c === ch) : [];
+  }
+  if (kind.startsWith('f:')) {
+    const l = kind.slice(2);
+    return cost.filter(r => r.label === l && DOLPHIN_NAME.test(r.dolphin_name || '') && r.character === ch);
+  }
+  return [];
+};
+const COST_VAL = it => it.dolphin_name !== undefined ? 'f#' + cost.indexOf(it) : it.name;
+const COST_LABEL = it => it.dolphin_name !== undefined
+  ? `${it.part} — costumes ${it.alts}`
+  : (it.s ? 'costume ' + uiCost(it.s) : 'default');
+
+function slotRowHTML(E, uient, fkey) {
+  const kinds = [];
+  if (UI_LIST) for (const g of UI_LIST) kinds.push({ v: 'u:' + g.t, label: UI_TYPE_TXT[g.t] || g.t });
+  for (const l of new Set(cost.map(r => r.label))) kinds.push({ v: 'f:' + l, label: l + ' texture' });
+  if (!kinds.length) return '';
+  // detected kind: the pick/candidate's UI entry or fighter label; the user can always change it
+  const det = uient ? 'u:' + uient.t : (fkey && fkey.rows.length && fkey.rows[0].label ? 'f:' + fkey.rows[0].label : '');
+  const kind = E._slotKind || det;
+  const chars = SLOT_CHARS(kind);
+  const ch = E._slotCh && chars.includes(E._slotCh) ? E._slotCh : (uient && chars.includes(uient.c) ? uient.c : chars[0]);
+  const costs = SLOT_COSTS(kind, ch);
+  let curVal = E._slotVal;
+  if (!curVal && uient && uient.c === ch) {
+    const it = costs.find(x => COST_VAL(x) === uient.name);
+    if (it) curVal = COST_VAL(it);
+  }
+  if (!curVal && fkey) {
+    for (const r of fkey.rows) {
+      if (!DOLPHIN_NAME.test(r.dolphin_name || '')) continue;
+      if (costs.includes(r)) { curVal = COST_VAL(r); break; }
+    }
+  }
+  return `<div class="slotrow">
+    <span class="score">use for a different slot</span>
+    <select class="slotkind" aria-label="texture kind">${det || E._slotKind ? '' : '<option value="" selected>— pick a kind —</option>'}${kinds.map(k => `<option value="${esc(k.v)}"${k.v === kind ? ' selected' : ''}>${esc(k.label)}</option>`).join('')}</select>
+    <select class="slotchar" aria-label="character slot"${chars.length ? '' : ' disabled'}>${chars.map(c => `<option value="${esc(c)}"${c === ch ? ' selected' : ''}>${esc(dname(c))}</option>`).join('')}</select>
+    <select class="slotcost" aria-label="costume or texture"${costs.length ? '' : ' disabled'}>${costs.map(it => `<option value="${esc(COST_VAL(it))}"${COST_VAL(it) === curVal ? ' selected' : ''}>${esc(COST_LABEL(it))}</option>`).join('')}</select>
+    <button class="mini" data-act="slot">apply</button>
+  </div>`;
+}
+
+function candHTML2(E, c, p) {
+  const usable = DOLPHIN_NAME.test(c.O.name);
+  const chosen = p && p.name === c.O.name;
+  const dimsNote = E.w !== c.O.w || E.h !== c.O.h
+    ? `<div class="idnote">yours is ${E.w}x${E.h} and the original is ${c.O.w}x${c.O.h} — a different size is fine (HD texture packs upscale); the filename keeps the original’s size</div>` : '';
+  return `<div class="cand">
+    <img class="thumb" src="${c.O.prev}" alt="">
+    <div class="candmain">
+      <div class="fname">${esc(c.O.name)}</div>
+      <div class="score">similarity ${Math.round(c.s * 100)}%</div>
+      ${fileRowsHTML(c.O.name)}
+      ${dimsNote}
+    </div>
+    ${usable
+      ? `<button class="usename sel" data-e="${UP.edited.indexOf(E)}" data-o="${c.oi}">${chosen ? '✓ selected' : 'use this name'}</button>`
+      : '<div class="idnote" style="margin:0">this original’s filename isn’t a Dolphin texture name — it can’t be used for renaming</div>'}
+  </div>`;
+}
+
+function renderResults() {
+  const out = el('id-results');
+  if (!UP.edited.length) { out.innerHTML = ''; updateExportBar(); return; }
+  const byName = exportStates();
+  out.innerHTML = UP.edited.map(E => rowHTML(E, byName)).join('');
+  updateExportBar();
+}
+
+function updateExportBar() {
+  const bar = el('exportbar');
+  renderUpErrors();
+  if (!UP.edited.length) { bar.hidden = true; return; }
+  bar.hidden = false;
+  const byName = exportStates();
+  let ready = 0, review = 0, skipped = 0, dups = 0;
+  for (const E of UP.edited) {
+    const p = E.pick;
+    if (!p) { review++; continue; }
+    if (p.state === 'skipped') skipped++;
+    else {
+      const xs = rowExportState(E, byName);
+      if (xs.ok) ready++;
+      else if (xs.dup) dups++;
+      else if (xs.conflict) review++;
+      else review++;
+    }
+  }
+  const btn = el('zipbtn');
+  if (exportInProgress) { btn.disabled = true; }
+  else {
+    btn.disabled = !ready;
+    btn.textContent = `Download ${ready} texture${ready === 1 ? '' : 's'} (.zip)`;
+  }
+  const seg = (n, s) => n ? `${n} ${s}` : '';
+  el('zipcounts').textContent = [
+    seg(ready, 'ready'), seg(review, 'need review'), seg(dups, 'duplicates'),
+    seg(skipped, 'skipped'), seg(UP.errors.length, 'unreadable')
+  ].filter(Boolean).join(' · ');
+}
+function renderUpErrors() {
+  const box = el('uperrors');
+  if (!box) return;
+  if (!UP.errors.length) { box.hidden = true; return; }
+  box.hidden = false;
+  box.innerHTML = `<b>${UP.errors.length} file${UP.errors.length === 1 ? '' : 's'} couldn't be used:</b> ` +
+    UP.errors.map(x => esc(x)).join(', ') +
+    ' <button class="mini" id="uperr-clear" style="margin-left:8px">dismiss</button>';
+  el('uperr-clear').addEventListener('click', () => {
+    UP.errors = []; renderUpErrors(); updateExportBar();
+  });
+}
+
+function renderEditedList() {
+  const sb = el('slotbar'); if (sb) sb.hidden = !UP.edited.length;
+  el('edited-list').innerHTML = UP.edited.length
+    ? UP.edited.map((e, i) => `<div class="fitem"><img class="thumb" src="${e.prev}" alt=""><span class="fname">${esc(e.name)}</span><span class="fdims">${e.w}x${e.h}</span><button class="rm" data-k="e" data-i="${i}" title="remove">✕</button></div>`).join('')
+    : '<p class="score">no files yet</p>';
+}
+/* a .pac/.pcs is a compressed archive of brres files — extract every texture
+ * inside, decode it, and enter it under its computed Dolphin name */
+const PACMOD = { extractPacTextures, texToCanvas }; // from pac.js
+
+/* .pac helper: a texture the built-in data lists as one file for ALL costumes of
+ * its character never changes between costumes, so a costume pack doesn't need it.
+ * Auto-skipped on extraction — but the computed name is stashed so un-skip brings
+ * it right back if a mod does change it. Not dump-checked, same as the rest. */
+/* like identicalEverywhere, but scoped to the standard costume group: in this
+ * build's data the P+ extra slots (40+) carry their own files, so a row covering
+ * every slot below 40 is one file shared across the whole standard group.
+ * universalPacSkip additionally requires the source pac's own costume to be one
+ * of the costumes the file is shared across. */
+function mainCostumeUniversal(r) {
+  const parts = r.part.split(' | ');
+  if (parts.length > 1) return false;
+  const use = partUsage[r.character] && partUsage[r.character][parts[0]];
+  if (!use || use.size < 3) return false;
+  const std = [...use].filter(x => +x < 40);
+  if (!std.length) return false;
+  const cov = new Set(r.alts.split(', ').map(a => a.replace(/ \(en\)$/, '')).filter(a => /^\d+$/.test(a)));
+  return std.every(x => cov.has(x));
+}
+
+function universalPacSkip(name, pacName) {
+  const e = byFile.get(String(name || '').trim().toLowerCase());
+  if (!e) return null;
+  const rows = e.rows.filter(r => DOLPHIN_NAME.test(r.dolphin_name || '') && mainCostumeUniversal(r));
+  if (!rows.length) return null;
+  const m = /^Fit([A-Za-z]+?)(\d*)\.(?:pac|pcs)$/i.exec(pacName || '');
+  const ch = m ? m[1].toLowerCase() : null;
+  // the number in the pac's file name is NOT used — the target slot is whatever you pick
+  let row;
+  if (ch && cost.some(r => r.character === ch)) {
+    row = rows.find(r => r.character === ch);
+    if (!row) return null; // this pac's character uses it per-costume — keep it
+  } else if (e.rows.length > rows.length) {
+    return null; // pac name unclear and the file is also used per-costume somewhere — keep it
+  } else {
+    row = rows[0];
+  }
+  return { row, txt: dname(row.character) + ' · ' + (row.label || row.part) + ' as one file for costumes ' + row.alts };
+}
+
+/* a fighter pac's textures are identified by the character in the file name and
+ * the texture's internal part name only — the number in the file name says nothing
+ * about which slot you want them on; that is always the slot you pick */
+function pacSource(it, pacName) {
+  const m = /^Fit([A-Za-z]+?)\d*\.(?:pac|pcs)$/i.exec(pacName || '');
+  if (!m) return null;
+  const ch = m[1].toLowerCase();
+  if (!cost.some(r => r.character === ch)) return null;
+  const internal = it.tex && it.tex.name;
+  if (!internal) return null;
+  const row = cost.find(r => r.character === ch && (r.part === internal || r.part.split(' | ').includes(internal))
+    && DOLPHIN_NAME.test(r.dolphin_name || ''));
+  return row ? { char: ch, part: row.part } : null;
+}
+
+async function addPacFile(f, list) {
+  const buf = new Uint8Array(await f.arrayBuffer());
+  const items = await PACMOD.extractPacTextures(buf);
+  if (!items.length) { UP.errors.push(f.name + ' — no textures found inside'); return; }
+  for (const it of items) {
+    const c = PACMOD.texToCanvas(it);
+    if (!c) continue;
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    if (!blob) continue;
+    const info = analyze(c, { name: it.name, size: blob.size });
+    info._png = new Uint8Array(await blob.arrayBuffer());
+    info._pac = f.name;
+    const univ = universalPacSkip(it.name, f.name);
+    if (univ) {
+      info._stash = { name: it.name, mvar: it.mvar };
+      info.pick = { state: 'skipped', name: null, auto: true,
+        note: 'auto-skipped — the built-in data lists ' + univ.txt + ' — not dump-checked. Usually unnecessary for a costume-only recolor; un-skip if your mod changes it.' };
+    } else {
+      const src = pacSource(it, f.name);
+      if (src) {
+        info._pacSrc = src;
+        info.pick = { state: 'review', name: null,
+          v: { cls: 'weak', txt: 'pick the character and costume slot in the bar above and press apply — the number in ' + f.name + ' is ignored' } };
+        if (G.active && G.ch && G.slot) gAssign(info, G.ch, G.slot);  // a slot is already picked: use it
+      } else if (/^Fit[A-Za-z]+\d*\.(?:pac|pcs)$/i.test(f.name)) {
+        // fighter pac, but no built-in original for this part + slot — needs your call
+        info._own = { name: it.name, mvar: it.mvar };
+        info.pick = { state: 'review', name: null,
+          v: { cls: 'weak', txt: 'no built-in original matched this part of ' + f.name + ' — use its own name if your game loads this file as-is, or pick a slot below' } };
+      } else {
+        info.pick = { state: 'ready', name: it.name, auto: true, confirmed: true,
+          note: 'name computed from the texture data inside ' + f.name + ' — not dump-checked' +
+                (it.mvar ? ' — Dolphin may also use ' + it.mvar : '') };
+      }
+    }
+    list.push(info);
+  }
+  gPrefill(f.name);
+}
+
+async function addFiles(files, list) {
+  for (const f of files) {
+    if (/\.(pac|pcs)$/i.test(f.name)) {
+      try { await addPacFile(f, list); } catch (_) { UP.errors.push(f.name); }
+      continue;
+    }
+    if (!/^image\//.test(f.type) && !/\.(png|jpe?g|bmp|webp)$/i.test(f.name)) {
+      UP.errors.push(f.name);
+      continue;
+    }
+    try {
+      const bmp = await decodeImage(f);
+      const info = analyze(bmp, f);
+      if (bmp.close) bmp.close();
+      list.push(info);
+      if (list === UP.orig) UP.origRev++;
+    } catch (_) { UP.errors.push(f.name); }
+  }
+  renderEditedList();
+  autoIdentify();
+  updateExportBar();
+}
+
+function wireDrop(zoneId, inputId, list) {
+  const zone = el(zoneId);
+  zone.addEventListener('click', () => el(inputId).click());
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('over');
+    addFiles([...e.dataTransfer.files], list);
+  });
+  el(inputId).addEventListener('change', e => {
+    addFiles([...e.target.files], list);
+    e.target.value = '';
+  });
+}
+wireDrop('drop-edited', 'file-edited', UP.edited);
+el('edited-list').addEventListener('click', e => {
+  const b = e.target.closest('.rm'); if (!b) return;
+  const E = UP.edited[+b.dataset.i];
+  expandedRows.delete(E);
+  UP.edited.splice(+b.dataset.i, 1);
+  renderResults();
+  renderEditedList();
+});
+/* kind / character selects in a slot row drive each other */
+el('id-results').addEventListener('change', e => {
+  const ksel = e.target.closest('.slotkind');
+  const chsel = e.target.closest('.slotchar');
+  if (!ksel && !chsel) return;
+  const srow = (ksel || chsel).closest('.slotrow');
+  let kind = srow.querySelector('.slotkind').value;
+  if (!kind) { // no kind picked yet — nothing to offer
+    srow.querySelector('.slotchar').innerHTML = '';
+    srow.querySelector('.slotcost').innerHTML = '';
+    return;
+  }
+  let chars = SLOT_CHARS(kind);
+  let ch = srow.querySelector('.slotchar').value;
+  if (!chars.includes(ch)) ch = chars[0];
+  if (ksel) {
+    const chSel2 = srow.querySelector('.slotchar');
+    chSel2.innerHTML = chars.map(c => `<option value="${esc(c)}">${esc(dname(c))}</option>`).join('');
+    chSel2.disabled = !chars.length;
+    chSel2.value = chars.includes(ch) ? ch : (chars[0] || '');
+    ch = chSel2.value; // costumes always follow what the dropdown actually shows
+  }
+  const costs = SLOT_COSTS(kind, ch);
+  srow.querySelector('.slotcost').innerHTML = costs.map(it => `<option value="${esc(COST_VAL(it))}">${esc(COST_LABEL(it))}</option>`).join('');
+  srow.querySelector('.slotcost').disabled = !costs.length;
+});
+
+el('id-results').addEventListener('click', e => {
+  const sel = e.target.closest('.usename.sel');
+  if (sel) {
+    // resolve the candidate from the row's own list — never from the global pool index
+    const E = UP.edited[+sel.dataset.e];
+    const c = E && E.cands && E.cands.find(x => x.oi === +sel.dataset.o);
+    if (E && c) {
+      E.pick = { state: 'ready', name: c.O.name, confirmed: true };
+      expandedRows.delete(E);
+      renderResults();
+    }
+    return;
+  }
+  const copy = e.target.closest('.bname');
+  if (copy) { copyText(copy.dataset.copy); return; }
+  const row = e.target.closest('.brow');
+  if (!row) return;
+  const E = UP.edited[+row.dataset.ei];
+  if (!E) return;
+  const act = e.target.closest('.mini');
+  if (!act) return;
+  if (act.dataset.act === 'toggle') {
+    expandedRows.has(E) ? expandedRows.delete(E) : expandedRows.add(E);
+    renderResults();
+  } else if (act.dataset.act === 'skip') {
+    E.pick = { state: 'skipped', name: null };
+    expandedRows.delete(E);
+    renderResults();
+  } else if (act.dataset.act === 'unskip') {
+    // with a slot picked, it maps to that slot; otherwise the stashed pac pick
+    // (auto-skipped universal texture) comes back exactly as computed
+    if (G.active && gResolveSource(E)) gAssign(E, G.ch, G.slot);
+    else E.pick = E._stash && E._stash.name && E._pac
+      ? { state: 'ready', name: E._stash.name, auto: true, confirmed: true,
+          note: 'name computed from the texture data inside ' + E._pac + ' — not dump-checked' +
+                (E._stash.mvar ? ' — Dolphin may also use ' + E._stash.mvar : '') }
+      : E._own && E._own.name && DOLPHIN_NAME.test(E._own.name)
+      ? { state: 'ready', name: E._own.name, confirmed: true, auto: false,
+          note: 'you kept this texture\u2019s own computed name — it only loads if your game runs this exact data — not dump-checked' +
+                (E._own.mvar ? ' — Dolphin may also use ' + E._own.mvar : '') }
+      : computePick(E);
+    if (E.pick.state === 'review' && !E._optInit) { expandedRows.add(E); E._optInit = true; }
+    renderResults();
+  } else if (act.dataset.act === 'ownname') {
+    // fighter-pac texture with no built-in original — you say the game loads this data as-is
+    if (E._own && DOLPHIN_NAME.test(E._own.name)) {
+      E.pick = { state: 'ready', name: E._own.name, confirmed: true, auto: false,
+        note: 'you kept this texture\u2019s own computed name — it only loads if your game runs this exact data — not dump-checked' +
+              (E._own.mvar ? ' — Dolphin may also use ' + E._own.mvar : '') };
+      renderResults();
+    }
+  } else if (act.dataset.act === 'dl') {
+    if (E.pick && E.pick.name) downloadAs(E, E.pick.name);
+  } else if (act.dataset.act === 'slot') {
+    const srow = act.closest('.slotrow');
+    const val = srow && srow.querySelector('.slotcost') && srow.querySelector('.slotcost').value;
+    const kind = srow && srow.querySelector('.slotkind') && srow.querySelector('.slotkind').value;
+    const ch = srow && srow.querySelector('.slotchar') && srow.querySelector('.slotchar').value;
+    if (!val || !kind) return;
+    if (val.startsWith('f#')) {
+      // fighter row: resolve the exact CSV row, not just the (possibly shared) filename
+      const r2 = cost[+val.slice(2)];
+      if (r2) {
+        delete E._src;
+        E._slotKind = kind; E._slotCh = ch; E._slotVal = val;
+        E.pick = { state: 'ready', name: r2.dolphin_name, confirmed: true, auto: false,
+          note: 'you assigned this to ' + dname(r2.character) + ' — ' + r2.label + ' (' + r2.part + ', costumes ' + r2.alts + ') — computed name, not dump-checked' };
+        renderResults();
+      }
+    } else {
+      const u2 = UI_INDEX && UI_INDEX[val];
+      if (u2) {
+        E._slotKind = kind; E._slotCh = ch; E._slotVal = val;
+        delete E._src;
+        E.pick = { state: 'ready', name: val, confirmed: true, auto: false,
+          note: 'you assigned this to ' + u2.c + (u2.s ? ' costume ' + uiCost(u2.s) : '') + ' (' + (UI_TYPE_TXT[u2.t] || u2.t) + ') — computed name, not dump-checked' +
+                (u2.mvar ? ' — Dolphin may also use ' + u2.mvar : '') };
+        renderResults();
+      }
+    }
+  }
+});
+
+/* ---------------- zip export ---------------- */
+const CRC_T = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c; }
+  return t;
+})();
+function crc32(u8) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < u8.length; i++) c = CRC_T[(c ^ u8[i]) & 255] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+// minimal STORE-only zip writer (PNGs are already compressed, so no deflate needed).
+// entry names are UTF-8 — byte lengths, not string lengths, drive the layout.
+function zipStore(entries) {
+  const enc = new TextEncoder();
+  let total = 22;
+  const prepared = entries.map(e => ({ nm: enc.encode(e.name), data: e.data }));
+  for (const e of prepared) total += 30 + e.nm.length + e.data.length + 46 + e.nm.length;
+  const out = new Uint8Array(total);
+  const dv = new DataView(out.buffer);
+  const DATE = ((2024 - 1980) << 9) | (1 << 5) | 1; // fixed date 2024-01-01
+  let off = 0;
+  const cd = [];
+  for (const e of prepared) {
+    const crc = crc32(e.data);
+    dv.setUint32(off, 0x04034b50, true);
+    dv.setUint16(off + 4, 20, true);       // version needed
+    dv.setUint16(off + 6, 0x0800, true);   // flags: UTF-8 names
+    dv.setUint16(off + 8, 0, true);        // method = store
+    dv.setUint16(off + 10, 0, true);       // time
+    dv.setUint16(off + 12, DATE, true);    // date
+    dv.setUint32(off + 14, crc, true);
+    dv.setUint32(off + 18, e.data.length, true);
+    dv.setUint32(off + 22, e.data.length, true);
+    dv.setUint16(off + 26, e.nm.length, true);
+    dv.setUint16(off + 28, 0, true);
+    out.set(e.nm, off + 30);
+    out.set(e.data, off + 30 + e.nm.length);
+    cd.push({ nm: e.nm, crc, sz: e.data.length, off });
+    off += 30 + e.nm.length + e.data.length;
+  }
+  const cdStart = off;
+  for (const c of cd) {
+    dv.setUint32(off, 0x02014b50, true);
+    dv.setUint16(off + 4, 20, true);
+    dv.setUint16(off + 6, 20, true);
+    dv.setUint16(off + 8, 0x0800, true);   // flags: UTF-8 names
+    dv.setUint16(off + 10, 0, true);
+    dv.setUint16(off + 12, 0, true);
+    dv.setUint16(off + 14, DATE, true);
+    dv.setUint32(off + 16, c.crc, true);
+    dv.setUint32(off + 20, c.sz, true);
+    dv.setUint32(off + 24, c.sz, true);
+    dv.setUint16(off + 28, c.nm.length, true);
+    dv.setUint32(off + 42, c.off, true);
+    out.set(c.nm, off + 46);
+    off += 46 + c.nm.length;
+  }
+  dv.setUint32(off, 0x06054b50, true);
+  dv.setUint16(off + 8, cd.length, true);
+  dv.setUint16(off + 10, cd.length, true);
+  dv.setUint32(off + 12, off - cdStart, true);
+  dv.setUint32(off + 16, cdStart, true);
+  return new Blob([out], { type: 'application/zip' });
+}
+
+async function pngBytes(E) {
+  if (E._png) return E._png;
+  const f = E.file;
+  const head = new Uint8Array(await f.arrayBuffer());
+  // byte-preserving passthrough only for actual PNG content — the full 8-byte
+  // signature, never the MIME type
+  const PNG_SIG = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
+  if (PNG_SIG.every((b, i) => head[i] === b)) {
+    E._png = head;
+  } else {
+    const bmp = await decodeImage(f);
+    const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    c.getContext('2d').drawImage(bmp, 0, 0);
+    if (bmp.close) bmp.close();
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    E._png = new Uint8Array(await blob.arrayBuffer());
+  }
+  return E._png;
+}
+
+let exportInProgress = false;
+el('zipbtn').onclick = async () => {
+  if (exportInProgress) return;
+  const byName = exportStates();
+  // snapshot name + file before any await — later clicks must not alter an export in flight
+  const jobs = UP.edited.filter(E => rowExportState(E, byName).ok)
+    .map(E => ({ file: E, name: E.pick.name }));
+  if (!jobs.length) return;
+  const btn = el('zipbtn');
+  exportInProgress = true;
+  btn.disabled = true; btn.textContent = 'building zip…';
+  try {
+    let folder = (el('zipfolder').value.trim() || 'My texture mod');
+    folder = folder.replace(/[\\/:*?"<>|]/g, '_');
+    if (folder === '.' || folder === '..') folder = 'My texture mod';
+    const entries = [];
+    const failed = [];
+    for (const j of jobs) {
+      try { entries.push({ name: `RSBE01/${folder}/${j.name}`, data: await pngBytes(j.file) }); }
+      catch (_) { failed.push(j.file.name); }
+    }
+    if (failed.length) {
+      // never hand the user a silently partial pack — show what failed and abort
+      for (const n of failed) UP.errors.push(n + ' — could not be read');
+      renderUpErrors();
+      toast(failed.length === jobs.length
+        ? 'zip not created — the file could not be read'
+        : `zip not created — ${failed.length} of ${jobs.length} files could not be read`);
+    } else if (entries.length) {
+      saveBlob(zipStore(entries), folder + '.zip');
+    }
+  } finally {
+    exportInProgress = false;
+    updateExportBar();
+  }
+};
+
+/* ---------------- set every included texture to one slot ---------------- */
+const G = { ch: '', slot: '', active: false };
+
+function gFileSet(ch) {
+  const set = new Set();
+  for (const r of cost) if (r.character === ch)
+    for (const a of r.alts.split(', ')) set.add(a.replace(/ \(en\)$/, ''));
+  return set;
+}
+/* slot values: 'p3' = 4th spot on the select screen, 'f20' = a file that is not on the
+ * select screen, 'AltR' etc. = variant files; with no select-screen data a plain number
+ * keeps the old file-number meaning */
+function gSlots(ch) {
+  const all = [...gFileSet(ch)].sort((a, b) => slotSortKey(a)[0] - slotSortKey(b)[0] || slotSortKey(a)[1] - slotSortKey(b)[1] || a.localeCompare(b));
+  const order = cssOrder(ch);
+  if (!order) return all;
+  const nums = all.filter(x => /^\d+$/.test(x));
+  return [...order.map((_, i) => 'p' + i),
+          ...nums.filter(x => !order.includes(+x)).map(x => 'f' + x),
+          ...all.filter(x => !/^\d+$/.test(x))];
+}
+/* slot value -> costume file name part ('01', 'AltR', ...) */
+function gFileOf(ch, slot) {
+  if (/^p\d+$/.test(slot)) { const o = cssOrder(ch); return o ? pad2(o[+slot.slice(1)]) : slot; }
+  if (/^f\d+$/.test(slot)) return slot.slice(1);
+  return slot;
+}
+/* slot value -> 0-based select-screen spot (portraits are spot + 1), or null */
+function gPosOf(ch, slot) {
+  if (/^p\d+$/.test(slot)) return +slot.slice(1);
+  if (/^\d+$/.test(slot) && !cssOrder(ch)) return +slot;   // no order data: old behaviour
+  return null;
+}
+function gSlotShort(ch, slot) {
+  if (/^p\d+$/.test(slot)) { const i = +slot.slice(1); return ordinal(i + 1) + ' spot (file ' + gFileOf(ch, slot) + ')'; }
+  if (/^f\d+$/.test(slot)) return 'file ' + slot.slice(1);
+  return /^\d+$/.test(slot) ? 'costume ' + slot : slot;
+}
+function gSlotLabel(ch, slot) {
+  if (/^p\d+$/.test(slot)) {
+    const i = +slot.slice(1), f = gFileOf(ch, slot);
+    return pad2(i) + ' · ' + ordinal(i + 1) + ' spot on the select screen · file ' + f +
+      (gFileSet(ch).has(f) ? '' : ' · portraits only (no costume file here)');
+  }
+  if (/^f\d+$/.test(slot)) return 'file ' + slot.slice(1) + ' · not on the select screen';
+  return /^\d+$/.test(slot) ? 'costume ' + slot : slot;
+}
+
+function gcharInit() {
+  const sel = el('gchar');
+  if (!sel || sel.options.length) return;
+  sel.innerHTML = cost.length
+    ? [...new Set(cost.map(r => r.character))].sort((a, b) => dname(a).localeCompare(dname(b)))
+        .map(c => `<option value="${esc(c)}">${esc(dname(c))}</option>`).join('')
+    : '<option value="">— loading —</option>';
+  sel.addEventListener('change', gRenderSlots);
+}
+
+function gRenderSlots() {
+  const sel = el('gslot');
+  const ch = el('gchar').value;
+  const slots = ch ? gSlots(ch) : [];
+  sel.innerHTML = '<option value="">— pick a costume slot —</option>' + slots.map(x => `<option value="${esc(x)}">${esc(gSlotLabel(ch, x))}</option>`).join('');
+  if (!(G.ch === ch && slots.includes(G.slot))) G.slot = '';
+  sel.value = G.slot || '';
+}
+
+/* source identity: the character + part a texture belongs to — resolved once,
+ * then kept, so repeated slot changes always remap from the original */
+function gResolveSource(E) {
+  if (E._src) return E._src;
+  if (E._pacSrc) { E._src = { char: E._pacSrc.char, part: E._pacSrc.part }; return E._src; }
+  const nm = (E.pick && E.pick.state === 'ready' && E.pick.name) || (DOLPHIN_NAME.test(E.name) ? E.name : null);
+  if (!nm) return null;
+  const e = byFile.get(String(nm).trim().toLowerCase());
+  if (!e || !e.rows.length) return null;
+  const pm = /^Fit([A-Za-z]+?)\d*\.(?:pac|pcs)$/i.exec(E._pac || '');
+  const ch = pm ? pm[1].toLowerCase() : null;
+  const row = (ch && e.rows.find(r => r.character === ch)) || e.rows[0];
+  if (!row || !DOLPHIN_NAME.test(row.dolphin_name || '')) return null;
+  E._src = { char: row.character, part: row.part };
+  return E._src;
+}
+
+/* map one entry onto the target slot via its source part — one unambiguous row,
+ * or the entry needs review and stays out of the zip until you pick something */
+function gAssign(E, ch, slot) {
+  const src = gResolveSource(E);
+  if (!src) return false;
+  const file = gFileOf(ch, slot);   // select-screen spot -> the costume file P+ loads there
+  const partRows = cost.filter(r => r.character === ch && r.part === src.part
+    && DOLPHIN_NAME.test(r.dolphin_name || ''));
+  let hit = partRows.filter(r => r.alts.split(', ').includes(file));
+  if (hit.length !== 1) {
+    // no exact slot row — allow the regional (en) variant of the same costume
+    const norm = partRows.filter(r => r.alts.split(', ').some(a => a.replace(/ \(en\)$/, '') === file));
+    if (hit.length === 0) hit = norm;
+  }
+  if (hit.length !== 1) {
+    E.pick = { state: 'review', name: null,
+      v: { cls: 'weak', txt: 'no ' + src.part + ' for ' + dname(ch) + ' ' + gSlotShort(ch, slot) + ' — pick a slot below' } };
+    return false;
+  }
+  const r = hit[0];
+  // some costumes have an English-language copy (FitXxxNN_en) with its own texture: if it
+  // differs, say so — the game may load that one instead
+  const enRow = partRows.find(x => x !== r && x.dolphin_name !== r.dolphin_name && x.alts.split(', ').includes(file + ' (en)'));
+  const enNote = enRow ? ' — this costume also has an English-language file (_en) that uses ' + enRow.dolphin_name + ' instead; if the skin does not show in game, use that name' : '';
+  E._slotKind = 'f:' + r.label; E._slotCh = ch; E._slotVal = 'f#' + cost.indexOf(r);
+  E.pick = { state: 'ready', name: r.dolphin_name, confirmed: true, auto: false,
+    note: 'set to ' + dname(ch) + ' ' + gSlotShort(ch, slot) + ' — ' + (r.label || r.part) + ' (' + r.part + ', costumes ' + r.alts + ') — computed name, not dump-checked' + enNote };
+  return true;
+}
+
+/* UI portraits use their own short names ('Falcon', 'Dedede') — map the picked
+ * fighter onto the UI list: verified aliases first, then exact normalized match,
+ * else a unique suffix match */
+const UI_ALIAS = {
+  gamewatch: 'Mr Game And Watch',   // 'Game & Watch' alone is the franchise mark
+  knuckles: 'Knuckles', mewtwo: 'Mewtwo', roy: 'Roy', robot: 'Rob'
+};
+function gUIMatch(ch) {
+  if (!UI_LIST) return null;
+  if (UI_ALIAS[ch]) return UI_ALIAS[ch];
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const target = norm(dname(ch));
+  const chars = [...new Set(UI_LIST.flatMap(g => g.items.map(i => i.c)))];
+  let hit = chars.filter(c => norm(c) === target);
+  if (hit.length !== 1) {
+    const suf = chars.filter(c => norm(c) && target.endsWith(norm(c)));
+    if (suf.length === 1) hit = suf; else return null;
+  }
+  return hit[0];
+}
+
+/* a UI texture in the batch gets the portrait of the picked character + costume
+ * (same portrait type it already matched as); none for that costume → review */
+function gAssignUI(E, uient, uiCh, slot) {
+  const grp = UI_LIST && UI_LIST.find(g => g.t === uient.t);
+  const bad = () => {
+    E.pick = { state: 'review', name: null,
+      v: { cls: 'weak', txt: 'no ' + (UI_TYPE_TXT[uient.t] || uient.t) + ' for ' + dname(G.ch) + ' ' + gSlotShort(G.ch, slot) + ' — pick a slot below' } };
+    return false;
+  };
+  const pos = gPosOf(G.ch, slot);   // portraits are numbered by select-screen spot
+  if (!uiCh || !grp || pos === null) return bad();
+  const hit = grp.items.filter(x => x.c === uiCh && x.s === pos + 1);
+  if (hit.length !== 1) return bad();
+  const x = hit[0];
+  E._slotKind = 'u:' + uient.t; E._slotCh = uiCh; E._slotVal = x.name;
+  delete E._src;
+  E.pick = { state: 'ready', name: x.name, confirmed: true, auto: false,
+    note: 'set to ' + dname(G.ch) + ' ' + gSlotShort(G.ch, slot) + ' (' + (UI_TYPE_TXT[uient.t] || uient.t) + ') — computed name, not dump-checked' +
+      (x.mvar ? ' — Dolphin may also use ' + x.mvar : '') };
+  return true;
+}
+
+el('gapply').addEventListener('click', () => {
+  const ch = el('gchar').value, slot = el('gslot').value;
+  if (!ch) return;
+  if (!slot) { el('gresult').textContent = 'pick a costume slot first'; return; }
+  G.ch = ch; G.slot = slot; G.active = true;
+  const uiCh = gUIMatch(ch);
+  let ok = 0, miss = 0, left = 0;
+  for (const E of UP.edited) {
+    if (E.pick && E.pick.state === 'skipped') continue;
+    const uient = UI_INDEX && ((E.pick && E.pick.state === 'ready' && E.pick.name && UI_INDEX[E.pick.name]) ||
+      (E.cands && E.cands[0] && UI_INDEX[E.cands[0].O.name]));
+    if (uient) { if (gAssignUI(E, uient, uiCh, slot)) ok++; else miss++; continue; }
+    if (!gResolveSource(E)) { left++; continue; }
+    if (gAssign(E, ch, slot)) ok++; else miss++;
+  }
+  renderResults(); updateExportBar();
+  el('gresult').textContent = `named ${ok} texture${ok === 1 ? '' : 's'}`
+    + (miss ? ` · ${miss} need review (no texture for ${gSlotShort(ch, slot)})` : '')
+    + (left ? ` · ${left} left as-is (not fighter textures)` : '');
+});
+
+/* uploading FitCaptain01.pac? pre-pick Captain Falcon + that costume */
+function gPrefill(pacName) {
+  const m = /^Fit([A-Za-z]+?)(\d*)\.(?:pac|pcs)$/i.exec(pacName);
+  if (!m) return;
+  const ch = m[1].toLowerCase();
+  if (!cost.some(r => r.character === ch)) return;
+  gcharInit();
+  const sel = el('gchar');
+  if (![...sel.options].some(o => o.value === ch)) return;
+  sel.value = ch; G.ch = ch;
+  gRenderSlots();
+  const fileNo = m[2] ? +m[2] : null, o = cssOrder(ch);
+  if (fileNo !== null && o && o.includes(fileNo)) { G.slot = 'p' + o.indexOf(fileNo); el('gslot').value = G.slot; }
+  el('slotbar').hidden = false;
+}
+
+
+gcharInit();
+setTab('upload');
+</script>
+<script data-pplx-inline-edit>
+(function () {
+  if (window === window.top) return;
+
+  const allowedParentOrigins = ["https://www.perplexity.ai","https://perplexity.ai","https://testing.perplexity.ai","https://staging.perplexity.ai","https://*.preview.i.perplexity.ai","http://perplexity.localhost","http://localhost:1420","http://127.0.0.1:1420","http://localhost:3000","http://127.0.0.1:3000","http://localhost:5173","http://127.0.0.1:5173"];
+  const MAX_FONT_BYTES = 500 * 1024;
+  const MAX_TOTAL_FONT_BYTES = 2 * 1024 * 1024;
+  const DEFAULT_LINE_HEIGHT = 16;
+  let scrollForwarding = false;
+  let scrollRaf = 0;
+  let trustedTopOrigin = null;
+
+  // Allow entries like "https://*.preview.i.perplexity.ai" — the wildcard
+  // matches a single DNS label (no dots), so "https://*.foo" cannot stretch
+  // across multiple labels.
+  function matchesAllowedOrigin(origin) {
+    if (!origin) return false;
+    for (const entry of allowedParentOrigins) {
+      if (!entry.includes("*")) {
+        if (entry === origin) return true;
+        continue;
+      }
+      const pattern = new RegExp(
+        "^" +
+          entry.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^.]+") +
+          "$",
+      );
+      if (pattern.test(origin)) return true;
+    }
+    return false;
+  }
+
+  // Trust decision: when the sender is same-origin-visible (event.origin is a
+  // real origin like https://www.perplexity.ai) we trust event.origin directly.
+  // When event.origin is "null" (opaque broker srcdoc), we fall back to the
+  // broker's stamped `parentOrigin` to identify the top window. The fallback
+  // is claim-only — we rely on the browser's native `targetOrigin` enforcement
+  // on the response path (see postToTrustedTop) to ensure replies can't be
+  // delivered to anyone but the actual top window of that claimed origin.
+  function getTrustedParentOrigin(event) {
+    const forwardedParentOrigin =
+      typeof event.data.parentOrigin === "string" ? event.data.parentOrigin : null;
+    const parentOrigin = event.origin === "null" ? forwardedParentOrigin : event.origin;
+    return matchesAllowedOrigin(parentOrigin) ? parentOrigin : null;
+  }
+
+  // All responses go to window.top with targetOrigin = the allowlisted origin.
+  // An attacker that iframes us inside their own null-origin broker can claim
+  // any parentOrigin they like, but the browser will drop the reply whenever
+  // the real top's origin doesn't match — so the screenshot never leaves.
+  function postToTrustedTop(message) {
+    if (!trustedTopOrigin) return;
+    try {
+      window.top.postMessage(message, trustedTopOrigin);
+    } catch (_error) {}
+  }
+
+  const PICK_CAPABILITIES = ["pick"];
+  const PICK_CHAIN_LENGTH = 4;
+  const PICK_MAX_TEXT_CHARS = 120;
+  const PICK_MAX_HTML_CHARS = 300;
+
+  function truncate(value, maxChars) {
+    return value.length > maxChars ? value.slice(0, maxChars - 1) + "…" : value;
+  }
+
+  function isPickableElement(element) {
+    return (
+      element instanceof Element &&
+      element !== document.documentElement &&
+      element !== document.body
+    );
+  }
+
+  function resolvePickTarget(x, y) {
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+    const element = document.elementFromPoint(x, y);
+    return isPickableElement(element) ? element.closest("svg") || element : null;
+  }
+
+  function pickLabel(element) {
+    if (element.id) return element.localName + "#" + element.id;
+    return [element.localName].concat(Array.from(element.classList).slice(0, 2)).join(".");
+  }
+
+  // Only attributes that help find the element in source. data-* values and URL
+  // query strings or fragments can carry tokens.
+  const PICK_ATTRIBUTES = new Set([
+    "id",
+    "class",
+    "name",
+    "type",
+    "role",
+    "alt",
+    "aria-label",
+    "href",
+    "src",
+  ]);
+
+  function pickAttributeValue(attribute) {
+    return attribute.name === "href" || attribute.name === "src"
+      ? attribute.value.split(/[?#]/)[0]
+      : attribute.value;
+  }
+
+  function describePickElement(element) {
+    const chain = [];
+    for (
+      let current = element;
+      isPickableElement(current) && chain.length < PICK_CHAIN_LENGTH;
+      current = current.parentElement
+    ) {
+      chain.unshift(current);
+    }
+    const attributes = Array.from(element.attributes)
+      .filter((attribute) => PICK_ATTRIBUTES.has(attribute.name))
+      .map((attribute) => ` ${attribute.name}="${pickAttributeValue(attribute).replace(/"/g, "&quot;")}"`)
+      .join("");
+    const text = (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
+    return {
+      chain: chain.map(pickLabel),
+      html: truncate(`<${element.localName}${attributes}>`, PICK_MAX_HTML_CHARS),
+      text: text ? truncate(text, PICK_MAX_TEXT_CHARS) : undefined,
+    };
+  }
+
+  // Hover asks once per frame, and innerText on a large section forces layout,
+  // so only the rect is re-read while the pointer stays on the same element.
+  // Clicks ask for fresh details since the page may have changed the element.
+  let lastPick = null;
+
+  function describePickTarget(element, fresh) {
+    if (fresh || lastPick?.element !== element) {
+      lastPick = { element, details: describePickElement(element) };
+    }
+    const rect = element.getBoundingClientRect();
+    return {
+      rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+      ...lastPick.details,
+    };
+  }
+
+  function inlineAll(original, clone) {
+    if (original.nodeType !== 1 || clone.nodeType !== 1) return;
+
+    try {
+      const computedStyle = getComputedStyle(original);
+      // cssText on a computed style is the serialized declaration in modern
+      // Chromium/Safari — a single read beats enumerating ~400 longhand
+      // properties. Firefox returns "" here, so we fall back on empty.
+      const serialized = computedStyle.cssText;
+      if (serialized) {
+        clone.style.cssText = serialized;
+      } else {
+        const parts = new Array(computedStyle.length);
+        for (let index = 0; index < computedStyle.length; index += 1) {
+          const property = computedStyle[index];
+          parts[index] = `${property}:${computedStyle.getPropertyValue(property)};`;
+        }
+        clone.style.cssText = parts.join("");
+      }
+    } catch (_error) {}
+
+    const originalChildren = original.children;
+    const clonedChildren = clone.children;
+    for (
+      let index = 0;
+      index < originalChildren.length && index < clonedChildren.length;
+      index += 1
+    ) {
+      inlineAll(originalChildren[index], clonedChildren[index]);
+    }
+  }
+
+  function extractFontUrl(srcValue) {
+    const matches = [
+      ...srcValue.matchAll(
+        /url\(["']?([^"')]+)["']?\)(?:\s*format\(["']?([^"')]+)["']?\))?/gi,
+      ),
+    ];
+    if (matches.length === 0) return null;
+    const woff2 = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff2"));
+    if (woff2) return woff2[1];
+    const woff = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff"));
+    if (woff) return woff[1];
+    return matches[0][1];
+  }
+
+  // Cache resolved font URL -> data URI across captures. Fonts on a page
+  // essentially never change, and a batch run emits multiple captures back to
+  // back — without this we'd refetch + re-base64 every time.
+  const fontDataUriCache = new Map();
+  const SRC_DECLARATION_RE = /src\s*:\s*[^;}]+/i;
+
+  async function fetchAsDataUri(url) {
+    if (fontDataUriCache.has(url)) return fontDataUriCache.get(url);
+    let dataUri = null;
+    try {
+      const response = await fetch(url, { mode: "cors", credentials: "omit" });
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size <= MAX_FONT_BYTES) {
+          dataUri = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onloadend = () =>
+              resolve(typeof reader.result === "string" ? reader.result : null);
+            reader.onerror = () => resolve(null);
+            reader.readAsDataURL(blob);
+          });
+        }
+      }
+    } catch (_error) {
+      dataUri = null;
+    }
+    fontDataUriCache.set(url, dataUri);
+    return dataUri;
+  }
+
+  function collectFontFaceRuleTexts() {
+    const rules = [];
+    for (const sheet of document.styleSheets) {
+      let cssRules;
+      try {
+        cssRules = sheet.cssRules;
+      } catch (_error) {
+        continue;
+      }
+      if (!cssRules) continue;
+      for (const rule of cssRules) {
+        const cssText = rule.cssText || "";
+        if (cssText.startsWith("@font-face")) rules.push(cssText);
+      }
+    }
+    return rules;
+  }
+
+  async function buildInlinedFontCss() {
+    const ruleTexts = collectFontFaceRuleTexts();
+    if (ruleTexts.length === 0) return null;
+
+    const resolved = ruleTexts.map((cssText) => {
+      if (!SRC_DECLARATION_RE.test(cssText)) return null;
+      const srcMatch = cssText.match(/src\s*:\s*([^;}]+)[;}]/i);
+      if (!srcMatch) return null;
+      const url = extractFontUrl(srcMatch[1]);
+      if (!url) return null;
+      try {
+        return { cssText, url: new URL(url, document.baseURI).href };
+      } catch (_error) {
+        return null;
+      }
+    });
+
+    const dataUris = await Promise.all(
+      resolved.map((entry) => (entry ? fetchAsDataUri(entry.url) : Promise.resolve(null))),
+    );
+
+    const inlined = [];
+    let totalBytes = 0;
+    for (let index = 0; index < resolved.length; index += 1) {
+      const entry = resolved[index];
+      const dataUri = dataUris[index];
+      if (!entry || !dataUri) continue;
+      const approxBytes = dataUri.length * 0.75;
+      if (totalBytes + approxBytes > MAX_TOTAL_FONT_BYTES) break;
+      totalBytes += approxBytes;
+      inlined.push(entry.cssText.replace(SRC_DECLARATION_RE, `src: url("${dataUri}")`));
+    }
+    return inlined.length > 0 ? inlined.join("\n") : null;
+  }
+
+  function stripExternal(clone) {
+    const images = clone.querySelectorAll("img");
+    for (let index = 0; index < images.length; index += 1) {
+      const src = images[index].getAttribute("src");
+      if (src && !src.startsWith("data:")) images[index].removeAttribute("src");
+    }
+
+    const elements = clone.querySelectorAll("*");
+    for (let index = 0; index < elements.length; index += 1) {
+      const style = elements[index].style.cssText;
+      if (style && style.includes("url(")) {
+        elements[index].style.cssText = style.replace(
+          /url\(["']?(?!data:)[^)"']*["']?\)/gi,
+          "none",
+        );
+      }
+    }
+  }
+
+  function emitScroll() {
+    scrollRaf = 0;
+    if (!scrollForwarding) return;
+    postToTrustedTop({
+      type: "INLINE_EDIT_SCROLL",
+      scrollX: window.scrollX,
+      scrollY: window.scrollY,
+      capabilities: PICK_CAPABILITIES,
+    });
+  }
+
+  window.addEventListener(
+    "scroll",
+    function () {
+      if (!scrollForwarding || scrollRaf) return;
+      scrollRaf = requestAnimationFrame(emitScroll);
+    },
+    { passive: true, capture: true },
+  );
+
+  async function handleCaptureRequest(event) {
+    const requestId = event.data.requestId;
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    function postResult(dataUrl) {
+      postToTrustedTop({
+        type: "INLINE_EDIT_SCREENSHOT_RESULT",
+        requestId,
+        dataUrl,
+        scrollX,
+        scrollY,
+      });
+    }
+
+    try {
+      // Wait for any pending web fonts to resolve so both inline metrics and
+      // the @font-face inlining below see the same loaded faces.
+      if (document.fonts && document.fonts.ready) {
+        try {
+          await document.fonts.ready;
+        } catch (_error) {}
+      }
+
+      const clone = document.documentElement.cloneNode(true);
+      inlineAll(document.documentElement, clone);
+
+      const removedNodes = clone.querySelectorAll("script,link[rel=\"stylesheet\"],style");
+      for (let index = 0; index < removedNodes.length; index += 1) {
+        removedNodes[index].remove();
+      }
+
+      stripExternal(clone);
+
+      // Re-embed web fonts as data-URI @font-face rules so the SVG rasterizer
+      // can resolve them — external font URLs aren't fetched during
+      // foreignObject rendering, which would otherwise force a fallback face
+      // and change text metrics.
+      const inlinedFontCss = await buildInlinedFontCss();
+      if (inlinedFontCss) {
+        const styleEl = document.createElement("style");
+        styleEl.textContent = inlinedFontCss;
+        const head = clone.querySelector("head");
+        if (head) head.appendChild(styleEl);
+        else clone.insertBefore(styleEl, clone.firstChild);
+      }
+
+      const html = new XMLSerializer().serializeToString(clone);
+      const svg =
+        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
+        '<foreignObject width="100%" height="100%">' +
+        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden">` +
+        `<div style="position:relative;left:-${scrollX}px;top:-${scrollY}px">` +
+        html +
+        "</div></div></foreignObject></svg>";
+      const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+      const image = new Image();
+      image.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(image, 0, 0);
+        postResult(canvas.toDataURL("image/png"));
+      };
+      image.onerror = function () {
+        postResult(null);
+      };
+      image.src = svgUrl;
+    } catch (_error) {
+      postResult(null);
+    }
+  }
+
+  window.addEventListener("message", function (event) {
+    if (!event.data) return;
+    // Only accept messages from the direct parent frame. Blocks sibling /
+    // unrelated-window postMessage senders that could otherwise reach us.
+    if (event.source !== window.parent) return;
+
+    const trustedParentOrigin = getTrustedParentOrigin(event);
+    if (!trustedParentOrigin) return;
+    trustedTopOrigin = trustedParentOrigin;
+
+    if (event.data.type === "INLINE_EDIT_PICK") {
+      const element = resolvePickTarget(event.data.x, event.data.y);
+      postToTrustedTop({
+        type: "INLINE_EDIT_PICK_RESULT",
+        seq: event.data.seq,
+        target: element ? describePickTarget(element, event.data.fresh === true) : null,
+      });
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_START") {
+      scrollForwarding = true;
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_STOP") {
+      scrollForwarding = false;
+      if (scrollRaf) cancelAnimationFrame(scrollRaf);
+      scrollRaf = 0;
+      return;
+    }
+
+    if (event.data.type === "INLINE_EDIT_SCROLL_BY") {
+      const { deltaX, deltaY, deltaMode } = event.data;
+      if (!scrollForwarding || !Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
+      if (deltaMode !== 0 && deltaMode !== 1 && deltaMode !== 2) return;
+      const lineHeight =
+        parseFloat(getComputedStyle(document.documentElement).lineHeight) || DEFAULT_LINE_HEIGHT;
+      const scaleX = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerWidth : 1;
+      const scaleY = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerHeight : 1;
+      // The selection overlay receives the wheel event instead of this iframe.
+      // Instant scrolling preserves trackpad deltas even on smooth-scroll sites.
+      window.scrollBy({ left: deltaX * scaleX, top: deltaY * scaleY, behavior: "instant" });
+      emitScroll();
+      return;
+    }
+
+    if (event.data.type !== "INLINE_EDIT_CAPTURE_REQUEST") return;
+
+    handleCaptureRequest(event);
+  });
+})();
+
+
+</script></body>
+</html>
