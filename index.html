@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>P+ Rollback-Safe Custom Texture Tool</title>
+<title>P+ Rollback-Safe Custom Cosmetic Tool</title>
 <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -67,45 +67,8 @@ header p.sub { color: var(--color-text-muted); font-size: var(--text-sm); margin
 .tab:hover { color: var(--color-text); }
 .tab[aria-selected="true"] { background: var(--color-surface-2); color: var(--color-text); border-color: var(--color-border); }
 
-/* costume sections */
-.slot { margin-top: var(--space-8); }
-.slot > button.slothead {
-  width: 100%; display: flex; align-items: center; gap: var(--space-3); text-align: left;
-  padding: var(--space-3) var(--space-4);
-  background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg); font-size: var(--text-base); font-weight: 700;
-}
-.slot > button.slothead:hover { border-color: var(--color-primary); }
-.slothead .chip { font-size: var(--text-xs); font-weight: 500; color: var(--color-text-muted);
-  padding: 0.1rem 0.6rem; border-radius: 999px; background: var(--color-surface-offset); }
-.slothead .arrow { margin-left: auto; color: var(--color-text-faint); transition: transform var(--transition-interactive); }
-.slot.open .slothead .arrow { transform: rotate(90deg); }
-.slotbody { display: none; }
-.slot.open .slotbody { display: block; }
-
-/* texture rows */
-.trow {
-  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-divider); border-top: none;
-  background: var(--color-surface-2);
-}
-.trow:first-of-type { border-top: 1px solid var(--color-divider); }
-.trow:hover { background: var(--color-surface-offset); }
-.tname { font-weight: 700; font-size: var(--text-base); min-width: 130px; }
 .traw { font-family: var(--font-mono); font-size: var(--text-xs); color: var(--color-text-faint); }
-.tmeta { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
-.tmeta .m { font-size: var(--text-xs); color: var(--color-text-muted);
-  font-family: var(--font-mono); padding: 0.1rem 0.55rem; border-radius: var(--radius-sm);
-  background: var(--color-surface-offset); }
-.tfile {
-  margin-left: auto; font-family: var(--font-mono); font-size: var(--text-xs); word-break: keep-all;
-  color: var(--color-text); background: var(--color-surface-offset);
-  border: 1px solid var(--color-border); border-radius: var(--radius-sm);
-  padding: 0.35rem 0.7rem; max-width: 100%; overflow-wrap: anywhere; text-align: left;
-}
-.tfile:hover { color: var(--color-primary); border-color: var(--color-primary); }
-.tshared { width: 100%; font-size: var(--text-xs); color: var(--color-warn); }
+
 .badge { display: inline-block; font-size: var(--text-xs); padding: 0.1rem 0.6rem;
   border-radius: 999px; font-weight: 500; }
 .badge.s0 { color: var(--color-good); background: color-mix(in oklab, var(--color-good) 13%, transparent); }
@@ -153,7 +116,7 @@ tbody td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--color-divide
   vertical-align: top; }
 td.size, td.fmt, tbody td:nth-child(8) { white-space: nowrap; }
 tbody tr:hover { background: var(--color-surface-2); }
-td.char, td.file { font-weight: 500; }
+td.char { font-weight: 500; }
 td.alts { color: var(--color-text-muted); font-family: var(--font-mono); font-size: var(--text-xs); }
 td.alts .ai { white-space: nowrap; }
 td.size, td.fmt { color: var(--color-text-muted); font-family: var(--font-mono); font-size: var(--text-xs); }
@@ -190,10 +153,8 @@ input[type=file] { font-size: var(--text-xs); color: var(--color-text-muted); ma
 .idbtn { margin-top: var(--space-4); background: var(--color-primary); color: #14161b; font-weight: 700;
   border-radius: var(--radius-md); padding: 0.55rem 1.3rem; font-size: var(--text-sm); }
 .idbtn:disabled { opacity: 0.4; cursor: not-allowed; }
-.idcard { margin-top: var(--space-4); background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg); padding: var(--space-4); }
-.idhead { display: flex; gap: var(--space-3); align-items: center; }
-.idhead .fname, .cand .fname { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
+
+.cand .fname { font-family: var(--font-mono); font-size: var(--text-sm); overflow-wrap: anywhere; }
 .cand .fname { font-size: var(--text-xs); }
 .verdict { display: inline-block; font-size: var(--text-xs); font-weight: 500; margin-top: 2px; }
 .v-exact, .v-strong { color: var(--color-good); }
@@ -219,9 +180,7 @@ input[type=file] { font-size: var(--text-xs); color: var(--color-text-muted); ma
 .exrow label { font-size: var(--text-xs); color: var(--color-text-muted); display: flex; align-items: center; gap: 8px; }
 .exrow input[type=text] { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md);
   padding: 0.45rem 0.6rem; font-size: var(--text-sm); color: var(--color-text); }
-.advanced { margin-top: var(--space-5); }
-.advanced summary { cursor: pointer; font-weight: 600; font-size: var(--text-sm); }
-.advanced[open] summary { margin-bottom: var(--space-2); }
+
 .brow { display: flex; gap: var(--space-3); background: var(--color-surface); border: 1px solid var(--color-border);
   border-radius: var(--radius-lg); padding: var(--space-3); margin-top: var(--space-2); }
 .brow.skipped { opacity: 0.55; }
@@ -244,16 +203,6 @@ input[type=file] { font-size: var(--text-xs); color: var(--color-text-muted); ma
   padding: 0.25rem 0.6rem; font-size: var(--text-xs); white-space: nowrap; }
 .mini:hover:not(:disabled) { border-color: var(--color-primary); color: var(--color-primary); }
 .mini:disabled { opacity: 0.4; cursor: not-allowed; }
-.manualgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-3); margin-top: var(--space-3); }
-.manualgrid label { display: block; font-size: var(--text-xs); color: var(--color-text-muted); }
-.manualgrid select { width: 100%; margin-top: 4px; background: var(--color-surface); border: 1px solid var(--color-border);
-  border-radius: var(--radius-md); padding: 0.5rem 0.6rem; font-size: var(--text-sm); }
-.mtarget { margin-top: var(--space-4); background: var(--color-surface-2); border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg); padding: var(--space-4); }
-.mfilename { font-family: var(--font-mono); font-size: var(--text-base); cursor: pointer; overflow-wrap: anywhere; }
-.mfilename:hover { color: var(--color-primary); }
-.mfilebox { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-4); flex-wrap: wrap; }
-.mfilebox .fname { font-family: var(--font-mono); font-size: var(--text-xs); }
 
 /* toast */
 #toast { position: fixed; bottom: var(--space-6); left: 50%; transform: translate(-50%, 20px);
@@ -268,15 +217,15 @@ footer { margin-top: var(--space-10); padding-top: var(--space-4);
 @media (max-width: 640px) {
   .toolbar input[type=search] { flex: 1 1 100%; }
   .count { margin-left: 0; width: 100%; }
-  .tfile { margin-left: 0; }
+  
 }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>P+ Rollback-Safe <span class="gold">Custom Texture Tool</span></h1>
-    <p class="sub">Drop your modded skins and get them renamed to the filenames Dolphin's Load Custom Textures expects. Only you see them, so netplay stays in sync. The Database tab lists every costume texture if you want to look one up.</p>
+    <h1>P+ Rollback-Safe <span class="gold">Custom Cosmetic Tool</span></h1>
+    <p class="sub">Drop your modded cosmetics and get them renamed to the filenames Dolphin's Load Custom Textures expects. Only you see them, so netplay stays in sync. The Database tab lists every costume texture if you want to look one up.</p>
     <div class="stats" id="stats"></div>
   </header>
 
@@ -347,7 +296,7 @@ footer { margin-top: var(--space-10); padding-top: var(--space-4);
   </div>
 
   <footer>
-    Built from a Brawl disc and a Project+ build. Names come from the textures' own data (Dolphin hashes them), so two costumes showing the same filename means the texture is genuinely identical.
+    Built from a Brawl disc and Project+ 3.2.1. Names come from the textures' own data (Dolphin hashes them), so two costumes showing the same filename means the texture is genuinely identical.
   </footer>
 </div>
 
@@ -382,11 +331,6 @@ const DISPLAY = {
   zakochild:'Alloy (Child)', zakogirl:'Alloy (Girl)', zelda:'Zelda'
 };
 const dname = c => DISPLAY[c] || c;
-
-const LABEL_ORDER = ['body','face','eye','mouth/teeth','skin','hair','head','helmet','hat',
-  'scarf','equipment','hands/arms','feet/shoes','legs','clothing','cape/cloak','belt','frill',
-  'canopy','tail','wings','ear','shell','metal','egg','weapon','specular','reflection','glow',
-  'highlight','leaf','plain white (siro)','shadow','edge','environment','nose'];
 
 /* which costumes use each part (own costumes; _en collapsed onto its base slot) */
 const partUsage = {};
@@ -433,10 +377,6 @@ function slotSortKey(s) {
   if (s === 'AltZ') return [1, 1];
   return [2, 0];
 }
-const partRank = r => {
-  const i = LABEL_ORDER.indexOf(r.label);
-  return i === -1 ? 99 : i;
-};
 
 const el = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, m => ({'&':'&','<':'<','>':'>','"':'"',"'":'&#39;'}[m]));
@@ -702,7 +642,7 @@ let builtinPool = null;
 let UI_INDEX = null;    // ui.js dolphin name (and _m variant) -> {t,c,s,w,h,name,mvar}
 let UI_LIST = null;     // [{t, items:[...]}] for the manual UI picker
 const UI_TYPE_TXT = {
-  b: 'battle portrait', r: 'CSS / result-screen portrait', s: 'in-match stock icon',
+  b: 'battle portrait', r: 'CSS / result-screen portrait', l: 'lives icon (stock)', s: 'series emblem',
   d: 'stock-count digit', f: 'CSS face icon', k: 'CSS franchise icon',
 };
 
@@ -720,7 +660,7 @@ function ensureBuiltin() {
   if (builtinPool) return Promise.resolve(builtinPool);
   return Promise.all([
     typeof BUILTIN !== 'undefined' ? Promise.resolve() : loadScript('builtin.js?v=1'),
-    typeof UI !== 'undefined' ? Promise.resolve() : loadScript('ui.js?v=1'),
+    typeof UI !== 'undefined' ? Promise.resolve() : loadScript('ui.js?v=2'),
   ]).then(() => {
     const n = THUMB * THUMB;
     const cv = document.createElement('canvas'); cv.width = cv.height = THUMB;
@@ -761,8 +701,8 @@ function ensureBuiltin() {
       for (let i = 0; i < U.n; i++) {
         const w = U.dims[i][0], h = U.dims[i][1];
         const m = U.meta[i];
-        const ent = { t: m.t, c: m.c, s: m.s, w, h, name: U.names[i], mvar: U.mvars[i] };
-        UI_INDEX[U.names[i]] = ent; UI_INDEX[U.mvars[i]] = ent;
+        const ent = { t: m.t, c: m.c, s: m.s, w, h, name: U.names[i], mvar: m.t === 'l' ? '' : U.mvars[i] };
+        UI_INDEX[U.names[i]] = ent; if (ent.mvar) UI_INDEX[ent.mvar] = ent;
         (groups[m.t] = groups[m.t] || []).push(ent);
         pool.push({ ...texsFromBytes(ubytes, i), w, h, name: U.names[i] });
       }
@@ -1607,449 +1547,8 @@ function gPrefill(pacName) {
   el('slotbar').hidden = false;
 }
 
-
 gcharInit();
 setTab('upload');
 </script>
-<script data-pplx-inline-edit>
-(function () {
-  if (window === window.top) return;
-
-  const allowedParentOrigins = ["https://www.perplexity.ai","https://perplexity.ai","https://testing.perplexity.ai","https://staging.perplexity.ai","https://*.preview.i.perplexity.ai","http://perplexity.localhost","http://localhost:1420","http://127.0.0.1:1420","http://localhost:3000","http://127.0.0.1:3000","http://localhost:5173","http://127.0.0.1:5173"];
-  const MAX_FONT_BYTES = 500 * 1024;
-  const MAX_TOTAL_FONT_BYTES = 2 * 1024 * 1024;
-  const DEFAULT_LINE_HEIGHT = 16;
-  let scrollForwarding = false;
-  let scrollRaf = 0;
-  let trustedTopOrigin = null;
-
-  // Allow entries like "https://*.preview.i.perplexity.ai" — the wildcard
-  // matches a single DNS label (no dots), so "https://*.foo" cannot stretch
-  // across multiple labels.
-  function matchesAllowedOrigin(origin) {
-    if (!origin) return false;
-    for (const entry of allowedParentOrigins) {
-      if (!entry.includes("*")) {
-        if (entry === origin) return true;
-        continue;
-      }
-      const pattern = new RegExp(
-        "^" +
-          entry.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^.]+") +
-          "$",
-      );
-      if (pattern.test(origin)) return true;
-    }
-    return false;
-  }
-
-  // Trust decision: when the sender is same-origin-visible (event.origin is a
-  // real origin like https://www.perplexity.ai) we trust event.origin directly.
-  // When event.origin is "null" (opaque broker srcdoc), we fall back to the
-  // broker's stamped `parentOrigin` to identify the top window. The fallback
-  // is claim-only — we rely on the browser's native `targetOrigin` enforcement
-  // on the response path (see postToTrustedTop) to ensure replies can't be
-  // delivered to anyone but the actual top window of that claimed origin.
-  function getTrustedParentOrigin(event) {
-    const forwardedParentOrigin =
-      typeof event.data.parentOrigin === "string" ? event.data.parentOrigin : null;
-    const parentOrigin = event.origin === "null" ? forwardedParentOrigin : event.origin;
-    return matchesAllowedOrigin(parentOrigin) ? parentOrigin : null;
-  }
-
-  // All responses go to window.top with targetOrigin = the allowlisted origin.
-  // An attacker that iframes us inside their own null-origin broker can claim
-  // any parentOrigin they like, but the browser will drop the reply whenever
-  // the real top's origin doesn't match — so the screenshot never leaves.
-  function postToTrustedTop(message) {
-    if (!trustedTopOrigin) return;
-    try {
-      window.top.postMessage(message, trustedTopOrigin);
-    } catch (_error) {}
-  }
-
-  const PICK_CAPABILITIES = ["pick"];
-  const PICK_CHAIN_LENGTH = 4;
-  const PICK_MAX_TEXT_CHARS = 120;
-  const PICK_MAX_HTML_CHARS = 300;
-
-  function truncate(value, maxChars) {
-    return value.length > maxChars ? value.slice(0, maxChars - 1) + "…" : value;
-  }
-
-  function isPickableElement(element) {
-    return (
-      element instanceof Element &&
-      element !== document.documentElement &&
-      element !== document.body
-    );
-  }
-
-  function resolvePickTarget(x, y) {
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-    const element = document.elementFromPoint(x, y);
-    return isPickableElement(element) ? element.closest("svg") || element : null;
-  }
-
-  function pickLabel(element) {
-    if (element.id) return element.localName + "#" + element.id;
-    return [element.localName].concat(Array.from(element.classList).slice(0, 2)).join(".");
-  }
-
-  // Only attributes that help find the element in source. data-* values and URL
-  // query strings or fragments can carry tokens.
-  const PICK_ATTRIBUTES = new Set([
-    "id",
-    "class",
-    "name",
-    "type",
-    "role",
-    "alt",
-    "aria-label",
-    "href",
-    "src",
-  ]);
-
-  function pickAttributeValue(attribute) {
-    return attribute.name === "href" || attribute.name === "src"
-      ? attribute.value.split(/[?#]/)[0]
-      : attribute.value;
-  }
-
-  function describePickElement(element) {
-    const chain = [];
-    for (
-      let current = element;
-      isPickableElement(current) && chain.length < PICK_CHAIN_LENGTH;
-      current = current.parentElement
-    ) {
-      chain.unshift(current);
-    }
-    const attributes = Array.from(element.attributes)
-      .filter((attribute) => PICK_ATTRIBUTES.has(attribute.name))
-      .map((attribute) => ` ${attribute.name}="${pickAttributeValue(attribute).replace(/"/g, "&quot;")}"`)
-      .join("");
-    const text = (element.innerText || element.textContent || "").replace(/\s+/g, " ").trim();
-    return {
-      chain: chain.map(pickLabel),
-      html: truncate(`<${element.localName}${attributes}>`, PICK_MAX_HTML_CHARS),
-      text: text ? truncate(text, PICK_MAX_TEXT_CHARS) : undefined,
-    };
-  }
-
-  // Hover asks once per frame, and innerText on a large section forces layout,
-  // so only the rect is re-read while the pointer stays on the same element.
-  // Clicks ask for fresh details since the page may have changed the element.
-  let lastPick = null;
-
-  function describePickTarget(element, fresh) {
-    if (fresh || lastPick?.element !== element) {
-      lastPick = { element, details: describePickElement(element) };
-    }
-    const rect = element.getBoundingClientRect();
-    return {
-      rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
-      ...lastPick.details,
-    };
-  }
-
-  function inlineAll(original, clone) {
-    if (original.nodeType !== 1 || clone.nodeType !== 1) return;
-
-    try {
-      const computedStyle = getComputedStyle(original);
-      // cssText on a computed style is the serialized declaration in modern
-      // Chromium/Safari — a single read beats enumerating ~400 longhand
-      // properties. Firefox returns "" here, so we fall back on empty.
-      const serialized = computedStyle.cssText;
-      if (serialized) {
-        clone.style.cssText = serialized;
-      } else {
-        const parts = new Array(computedStyle.length);
-        for (let index = 0; index < computedStyle.length; index += 1) {
-          const property = computedStyle[index];
-          parts[index] = `${property}:${computedStyle.getPropertyValue(property)};`;
-        }
-        clone.style.cssText = parts.join("");
-      }
-    } catch (_error) {}
-
-    const originalChildren = original.children;
-    const clonedChildren = clone.children;
-    for (
-      let index = 0;
-      index < originalChildren.length && index < clonedChildren.length;
-      index += 1
-    ) {
-      inlineAll(originalChildren[index], clonedChildren[index]);
-    }
-  }
-
-  function extractFontUrl(srcValue) {
-    const matches = [
-      ...srcValue.matchAll(
-        /url\(["']?([^"')]+)["']?\)(?:\s*format\(["']?([^"')]+)["']?\))?/gi,
-      ),
-    ];
-    if (matches.length === 0) return null;
-    const woff2 = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff2"));
-    if (woff2) return woff2[1];
-    const woff = matches.find((m) => m[2] && m[2].toLowerCase().includes("woff"));
-    if (woff) return woff[1];
-    return matches[0][1];
-  }
-
-  // Cache resolved font URL -> data URI across captures. Fonts on a page
-  // essentially never change, and a batch run emits multiple captures back to
-  // back — without this we'd refetch + re-base64 every time.
-  const fontDataUriCache = new Map();
-  const SRC_DECLARATION_RE = /src\s*:\s*[^;}]+/i;
-
-  async function fetchAsDataUri(url) {
-    if (fontDataUriCache.has(url)) return fontDataUriCache.get(url);
-    let dataUri = null;
-    try {
-      const response = await fetch(url, { mode: "cors", credentials: "omit" });
-      if (response.ok) {
-        const blob = await response.blob();
-        if (blob.size <= MAX_FONT_BYTES) {
-          dataUri = await new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onloadend = () =>
-              resolve(typeof reader.result === "string" ? reader.result : null);
-            reader.onerror = () => resolve(null);
-            reader.readAsDataURL(blob);
-          });
-        }
-      }
-    } catch (_error) {
-      dataUri = null;
-    }
-    fontDataUriCache.set(url, dataUri);
-    return dataUri;
-  }
-
-  function collectFontFaceRuleTexts() {
-    const rules = [];
-    for (const sheet of document.styleSheets) {
-      let cssRules;
-      try {
-        cssRules = sheet.cssRules;
-      } catch (_error) {
-        continue;
-      }
-      if (!cssRules) continue;
-      for (const rule of cssRules) {
-        const cssText = rule.cssText || "";
-        if (cssText.startsWith("@font-face")) rules.push(cssText);
-      }
-    }
-    return rules;
-  }
-
-  async function buildInlinedFontCss() {
-    const ruleTexts = collectFontFaceRuleTexts();
-    if (ruleTexts.length === 0) return null;
-
-    const resolved = ruleTexts.map((cssText) => {
-      if (!SRC_DECLARATION_RE.test(cssText)) return null;
-      const srcMatch = cssText.match(/src\s*:\s*([^;}]+)[;}]/i);
-      if (!srcMatch) return null;
-      const url = extractFontUrl(srcMatch[1]);
-      if (!url) return null;
-      try {
-        return { cssText, url: new URL(url, document.baseURI).href };
-      } catch (_error) {
-        return null;
-      }
-    });
-
-    const dataUris = await Promise.all(
-      resolved.map((entry) => (entry ? fetchAsDataUri(entry.url) : Promise.resolve(null))),
-    );
-
-    const inlined = [];
-    let totalBytes = 0;
-    for (let index = 0; index < resolved.length; index += 1) {
-      const entry = resolved[index];
-      const dataUri = dataUris[index];
-      if (!entry || !dataUri) continue;
-      const approxBytes = dataUri.length * 0.75;
-      if (totalBytes + approxBytes > MAX_TOTAL_FONT_BYTES) break;
-      totalBytes += approxBytes;
-      inlined.push(entry.cssText.replace(SRC_DECLARATION_RE, `src: url("${dataUri}")`));
-    }
-    return inlined.length > 0 ? inlined.join("\n") : null;
-  }
-
-  function stripExternal(clone) {
-    const images = clone.querySelectorAll("img");
-    for (let index = 0; index < images.length; index += 1) {
-      const src = images[index].getAttribute("src");
-      if (src && !src.startsWith("data:")) images[index].removeAttribute("src");
-    }
-
-    const elements = clone.querySelectorAll("*");
-    for (let index = 0; index < elements.length; index += 1) {
-      const style = elements[index].style.cssText;
-      if (style && style.includes("url(")) {
-        elements[index].style.cssText = style.replace(
-          /url\(["']?(?!data:)[^)"']*["']?\)/gi,
-          "none",
-        );
-      }
-    }
-  }
-
-  function emitScroll() {
-    scrollRaf = 0;
-    if (!scrollForwarding) return;
-    postToTrustedTop({
-      type: "INLINE_EDIT_SCROLL",
-      scrollX: window.scrollX,
-      scrollY: window.scrollY,
-      capabilities: PICK_CAPABILITIES,
-    });
-  }
-
-  window.addEventListener(
-    "scroll",
-    function () {
-      if (!scrollForwarding || scrollRaf) return;
-      scrollRaf = requestAnimationFrame(emitScroll);
-    },
-    { passive: true, capture: true },
-  );
-
-  async function handleCaptureRequest(event) {
-    const requestId = event.data.requestId;
-    const scrollX = window.scrollX;
-    const scrollY = window.scrollY;
-    const width = window.innerWidth;
-    const height = window.innerHeight;
-
-    function postResult(dataUrl) {
-      postToTrustedTop({
-        type: "INLINE_EDIT_SCREENSHOT_RESULT",
-        requestId,
-        dataUrl,
-        scrollX,
-        scrollY,
-      });
-    }
-
-    try {
-      // Wait for any pending web fonts to resolve so both inline metrics and
-      // the @font-face inlining below see the same loaded faces.
-      if (document.fonts && document.fonts.ready) {
-        try {
-          await document.fonts.ready;
-        } catch (_error) {}
-      }
-
-      const clone = document.documentElement.cloneNode(true);
-      inlineAll(document.documentElement, clone);
-
-      const removedNodes = clone.querySelectorAll("script,link[rel=\"stylesheet\"],style");
-      for (let index = 0; index < removedNodes.length; index += 1) {
-        removedNodes[index].remove();
-      }
-
-      stripExternal(clone);
-
-      // Re-embed web fonts as data-URI @font-face rules so the SVG rasterizer
-      // can resolve them — external font URLs aren't fetched during
-      // foreignObject rendering, which would otherwise force a fallback face
-      // and change text metrics.
-      const inlinedFontCss = await buildInlinedFontCss();
-      if (inlinedFontCss) {
-        const styleEl = document.createElement("style");
-        styleEl.textContent = inlinedFontCss;
-        const head = clone.querySelector("head");
-        if (head) head.appendChild(styleEl);
-        else clone.insertBefore(styleEl, clone.firstChild);
-      }
-
-      const html = new XMLSerializer().serializeToString(clone);
-      const svg =
-        `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}">` +
-        '<foreignObject width="100%" height="100%">' +
-        `<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden">` +
-        `<div style="position:relative;left:-${scrollX}px;top:-${scrollY}px">` +
-        html +
-        "</div></div></foreignObject></svg>";
-      const svgUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-      const image = new Image();
-      image.onload = function () {
-        const canvas = document.createElement("canvas");
-        canvas.width = width;
-        canvas.height = height;
-        canvas.getContext("2d").drawImage(image, 0, 0);
-        postResult(canvas.toDataURL("image/png"));
-      };
-      image.onerror = function () {
-        postResult(null);
-      };
-      image.src = svgUrl;
-    } catch (_error) {
-      postResult(null);
-    }
-  }
-
-  window.addEventListener("message", function (event) {
-    if (!event.data) return;
-    // Only accept messages from the direct parent frame. Blocks sibling /
-    // unrelated-window postMessage senders that could otherwise reach us.
-    if (event.source !== window.parent) return;
-
-    const trustedParentOrigin = getTrustedParentOrigin(event);
-    if (!trustedParentOrigin) return;
-    trustedTopOrigin = trustedParentOrigin;
-
-    if (event.data.type === "INLINE_EDIT_PICK") {
-      const element = resolvePickTarget(event.data.x, event.data.y);
-      postToTrustedTop({
-        type: "INLINE_EDIT_PICK_RESULT",
-        seq: event.data.seq,
-        target: element ? describePickTarget(element, event.data.fresh === true) : null,
-      });
-      return;
-    }
-
-    if (event.data.type === "INLINE_EDIT_SCROLL_START") {
-      scrollForwarding = true;
-      emitScroll();
-      return;
-    }
-
-    if (event.data.type === "INLINE_EDIT_SCROLL_STOP") {
-      scrollForwarding = false;
-      if (scrollRaf) cancelAnimationFrame(scrollRaf);
-      scrollRaf = 0;
-      return;
-    }
-
-    if (event.data.type === "INLINE_EDIT_SCROLL_BY") {
-      const { deltaX, deltaY, deltaMode } = event.data;
-      if (!scrollForwarding || !Number.isFinite(deltaX) || !Number.isFinite(deltaY)) return;
-      if (deltaMode !== 0 && deltaMode !== 1 && deltaMode !== 2) return;
-      const lineHeight =
-        parseFloat(getComputedStyle(document.documentElement).lineHeight) || DEFAULT_LINE_HEIGHT;
-      const scaleX = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerWidth : 1;
-      const scaleY = deltaMode === 1 ? lineHeight : deltaMode === 2 ? window.innerHeight : 1;
-      // The selection overlay receives the wheel event instead of this iframe.
-      // Instant scrolling preserves trackpad deltas even on smooth-scroll sites.
-      window.scrollBy({ left: deltaX * scaleX, top: deltaY * scaleY, behavior: "instant" });
-      emitScroll();
-      return;
-    }
-
-    if (event.data.type !== "INLINE_EDIT_CAPTURE_REQUEST") return;
-
-    handleCaptureRequest(event);
-  });
-})();
-
-
-</script></body>
+</body>
 </html>
