@@ -24,10 +24,10 @@ Adding files to the SD card changes the game and desyncs netplay. Dolphin's cust
 ## Known limits (beta)
 
 - Built for Project+ 3.2.1. If a costume's textures change in an update, its filenames change too.
-- Tested end to end in game on Captain Falcon. Other characters use the same method, so please report anything that looks wrong.
+- Tested end to end in game on Captain Falcon. Other characters use the same method but are not tested, so please report anything that looks wrong.
 - Some textures (about 1,300 of 5,466) do not have verified names, marked in the Status column. These include textures for characters like Mario, Link, Donkey Kong and Sonic, so if any textures fail to load, report it.
 - Texture swaps only. Mods that change the model (new props, accessories, extra geometry, or reshaped parts) can't be made rollback-safe, because Dolphin's Load Custom Textures only replaces images on textures that already exist. Only the recolored textures from such a mod will show up, and any textures that belong to added parts have no original to replace and can't be named. Using the real model means editing the SD card, which desyncs netplay.
-- Some costumes have an English-language variant (for example Falcon's 3rd spot). If a body texture doesn't show in game, try the alternate name the tool lists.
+- Some costumes have an language variants? (for example Falcon's 3rd spot). If a body texture doesn't show in game, try the alternate name the tool lists.
 
 ## Report a wrong name
 
@@ -35,6 +35,6 @@ Open an Issue with the character, the spot, the part (body, helmet, portrait...)
 
 ## Credits and license
 
-Unofficial fan tool. It is not affiliated with Nintendo or the Project+ team. Brawl and Project+ textures and artwork belong to their owners. The data files hold small fingerprints and thumbnails made from game files, used only to match your textures.
+Unofficial fan tool. It is not affiliated with Nintendo, Project+, or Brawl Online. Brawl and Project+ textures and artwork belong to their owners. The data files hold small fingerprints and thumbnails made from game files, used only to match your textures.
 
 The code is released under the MIT license (see `LICENSE`).
