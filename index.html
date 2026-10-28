@@ -288,6 +288,7 @@ footer { margin-top: var(--space-10); padding-top: var(--space-4);
       <div class="exrow">
         <label>folder name inside the zip <input type="text" id="zipfolder" value="My texture mod" maxlength="60" spellcheck="false"></label>
         <button class="idbtn" id="zipbtn" disabled>Download ready textures (.zip)</button>
+        <button class="idbtn" id="newmod" hidden>Make another mod</button>
       </div>
       <p class="score" id="zipcounts" style="margin-top:8px"></p>
       <p class="idnote" style="margin-top:4px">unzip it into Dolphin's <code>User\Load\Textures\</code> folder, then turn on Graphics → Advanced → <strong>Load Custom Textures</strong>. Files that still need a name are left out of the zip until you pick one.</p>
@@ -317,7 +318,7 @@ const cost = DATA.costumes.map(a => { const o = {}; CK.forEach((k,i) => o[k] = a
 const STATUS_TXT = {0:'computed', 1:'mipmapped', 2:'paletted', 3:'unresolved'};
 
 const DISPLAY = {
-  captain:'Captain Falcon', dedede:'King Dedede', diddy:'Diddy Kong', donkey:'Donkey Kong',
+  captain:'Captain Falcon', Falcon:'Captain Falcon', Dedede:'King Dedede', dedede:'King Dedede', diddy:'Diddy Kong', donkey:'Donkey Kong',
   falco:'Falco', fighter:'Common fighter files', fox:'Fox', gamewatch:'Mr. Game & Watch',
   ganon:'Ganondorf', gkoopa:'Giga Bowser', ike:'Ike', item:'Items', kirby:'Kirby',
   knuckles:'Knuckles (P+)', koopa:'Bowser', link:'Link', lucario:'Lucario', lucas:'Lucas',
@@ -514,6 +515,24 @@ const UP = { edited: [], orig: [], origRev: 0, errors: [] };
 // strict: hex hashes only — unresolved placeholders like <palettehash> can never be a usable filename
 const DOLPHIN_NAME = /^tex\d+_\d+x\d+(_m)?_[0-9a-f]{8,}(_[0-9a-f]{8,})?_\d+\.png$/i;
 
+/* texture (part) name -> db rows, so a file called FitPokeFushigisou_Grass*.png is
+ * recognised by name alone: exact part name first, else the longest part name it starts with */
+const byPart = new Map();
+for (const r of cost) {
+  const k = String(r.part || '').trim().toLowerCase();
+  if (!k) continue;
+  if (!byPart.has(k)) byPart.set(k, []);
+  byPart.get(k).push(r);
+}
+const partKeys = [...byPart.keys()].sort((a, b) => b.length - a.length);
+function nameGuess(fileName) {
+  const stem = String(fileName || '').replace(/\.[a-z0-9]+$/i, '').trim().toLowerCase();
+  if (!stem) return null;
+  if (byPart.has(stem)) return { part: stem, rows: byPart.get(stem), exact: true };
+  const k = partKeys.find(k => k.length >= 6 && stem.startsWith(k) && /^[._\- 0-9]/.test(stem.slice(k.length)));
+  return k ? { part: k, rows: byPart.get(k), exact: false } : null;
+}
+
 /* every known filename (incl. alternate candidates) -> db rows */
 const byFile = new Map();
 for (const r of cost) {
@@ -642,7 +661,7 @@ let builtinPool = null;
 let UI_INDEX = null;    // ui.js dolphin name (and _m variant) -> {t,c,s,w,h,name,mvar}
 let UI_LIST = null;     // [{t, items:[...]}] for the manual UI picker
 const UI_TYPE_TXT = {
-  b: 'battle portrait', r: 'CSS / result-screen portrait', l: 'lives icon (stock)', s: 'series emblem',
+  b: 'battle portrait', r: 'CSS / result-screen portrait', l: 'stocks icon', s: 'series emblem',
   d: 'stock-count digit', f: 'CSS face icon', k: 'CSS franchise icon',
 };
 
@@ -797,8 +816,10 @@ function rowHTML(E, byName) {
   const uient = UI_INDEX && ((p.name && UI_INDEX[p.name]) ||
     (E.cands && E.cands[0] && UI_INDEX[E.cands[0].O.name]));
   // fighter-texture kind: the CSV label (body/face/eye/…) of the picked name or top candidate
+  const nameG = nameGuess(E.name);
   const fkey = (p.name && byFile.get(String(p.name).trim().toLowerCase())) ||
-    (E.cands && E.cands[0] && byFile.get(String(E.cands[0].O.name).trim().toLowerCase()));
+    (E.cands && E.cands[0] && byFile.get(String(E.cands[0].O.name).trim().toLowerCase())) ||
+    (nameG && { rows: nameG.rows, alt: false, noPre: true });
   const flabel = fkey && fkey.rows.length ? fkey.rows[0].label : null;
   const badge =
     p.state === 'skipped' ? '<span class="verdict v-none">skipped — not included in the zip</span>'
@@ -828,6 +849,7 @@ function rowHTML(E, byName) {
         <button class="mini" data-act="dl" ${p.state === 'ready' && p.name ? '' : 'disabled'}>download</button>
       </div>
       ${p.v && p.state !== 'skipped' ? `<span class="verdict v-${p.v.cls}">${p.v.txt}</span>` : ''}
+      ${nameG && p.state !== 'ready' ? `<div class="idnote">from its filename: <b>${esc(dname(nameG.rows[0].character))}</b> · ${nameG.rows[0].label ? esc(nameG.rows[0].label) + ' <span class="traw">' + esc(nameG.rows[0].part) + '</span>' : '<span class="traw">' + esc(nameG.rows[0].part) + '</span> (small part, no simple label)'}${nameG.exact ? '' : ' (extra layer or variant of this texture)'} — pick the costume slot below</div>` : ''}
       ${p.note ? `<div class="idnote">${esc(p.note)}</div>` : ''}
       ${p.state === 'ready' && p.name && xs.ok ? fileRowsHTML(p.name, E._pac ? 'pac' : '') : ''}
       ${show ? slotRowHTML(E, uient, fkey) : ''}
@@ -843,11 +865,11 @@ function rowHTML(E, byName) {
 const SLOT_CHARS = kind => {
   if (kind.startsWith('u:')) {
     const g = UI_LIST && UI_LIST.find(x => 'u:' + x.t === kind);
-    return g ? [...new Set(g.items.map(i => i.c))] : [];
+    return g ? [...new Set(g.items.map(i => i.c))].sort((a, b) => dname(a).localeCompare(dname(b))) : [];
   }
   if (kind.startsWith('f:')) {
     const l = kind.slice(2);
-    return [...new Set(cost.filter(r => r.label === l && DOLPHIN_NAME.test(r.dolphin_name || '')).map(r => r.character))];
+    return [...new Set(cost.filter(r => r.label === l && DOLPHIN_NAME.test(r.dolphin_name || '')).map(r => r.character))].sort((a, b) => dname(a).localeCompare(dname(b)));
   }
   return [];
 };
@@ -883,7 +905,7 @@ function slotRowHTML(E, uient, fkey) {
     const it = costs.find(x => COST_VAL(x) === uient.name);
     if (it) curVal = COST_VAL(it);
   }
-  if (!curVal && fkey) {
+  if (!curVal && fkey && !fkey.noPre) {
     for (const r of fkey.rows) {
       if (!DOLPHIN_NAME.test(r.dolphin_name || '')) continue;
       if (costs.includes(r)) { curVal = COST_VAL(r); break; }
@@ -1346,11 +1368,22 @@ el('zipbtn').onclick = async () => {
         : `zip not created — ${failed.length} of ${jobs.length} files could not be read`);
     } else if (entries.length) {
       saveBlob(zipStore(entries), folder + '.zip');
+      el('newmod').hidden = false;
     }
   } finally {
     exportInProgress = false;
     updateExportBar();
   }
+};
+
+el('newmod').onclick = () => {
+  if (exportInProgress) return;
+  UP.edited.length = 0; UP.errors = [];
+  expandedRows.clear();
+  for (const id of ['file-edited']) { try { el(id).value = ''; } catch (_) {} }
+  el('gresult').textContent = '';
+  el('newmod').hidden = true;
+  renderEditedList(); renderResults(); renderUpErrors(); updateExportBar();
 };
 
 /* ---------------- set every included texture to one slot ---------------- */
