@@ -575,7 +575,17 @@ function analyze(bmp, file) {
   const std = Math.sqrt(sd / n);
   const p = document.createElement('canvas'); p.width = p.height = 48;
   p.getContext('2d').drawImage(bmp, 0, 0, 48, 48);
-  return { file, name: file.name, w: bmp.width, h: bmp.height, vec, phash: pixelHash(bmp), mean,
+  // how much of the image is partly see-through (not fully opaque, not fully clear)
+  let semi = 0;
+  try {
+    const ac = document.createElement('canvas'); ac.width = ac.height = 64;
+    const actx = ac.getContext('2d', { willReadFrequently: true });
+    actx.drawImage(bmp, 0, 0, 64, 64);
+    const ad = actx.getImageData(0, 0, 64, 64).data;
+    for (let i = 3; i < ad.length; i += 4) if (ad[i] > 12 && ad[i] < 243) semi++;
+    semi /= 64 * 64;
+  } catch (_) { semi = 0; }
+  return { semi, file, name: file.name, w: bmp.width, h: bmp.height, vec, phash: pixelHash(bmp), mean,
     std, flat: std < 7, prev: p.toDataURL('image/png') };
 }
 
@@ -771,8 +781,15 @@ const expandedRows = new Set();
 // auto-selection policy: files that already carry a Dolphin filename keep it;
 // exact / strong matches are accepted automatically; everything else waits for a choice
 function computePick(E) {
-  if (DOLPHIN_NAME.test(E.name))
-    return { state: 'ready', name: E.name, auto: true, note: 'already has a Dolphin filename — kept as-is' };
+  if (DOLPHIN_NAME.test(E.name)) {
+    // a Dolphin-style name that is not any original in the built-in data is most likely the hash of the
+    // MODDED texture (from a dump of the mod) — that name never matches the game's original, so it won't load
+    const known = byFile.has(E.name.trim().toLowerCase()) || (UI_INDEX && UI_INDEX[E.name]);
+    if (!known && !E._keepName)
+      return { state: 'review', name: null, v: { cls: 'weak',
+        txt: 'this filename is not any original texture in the built-in data — likely the name of the modded texture, which Dolphin will not match. Pick the slot below, or keep the name if you know it is right' } };
+    return { state: 'ready', name: E.name, auto: true, note: known ? 'already has a Dolphin filename — kept as-is' : 'unknown filename kept because you chose to' };
+  }
   const cands = E.cands || [];
   const v = verdictFor(E, cands);
   const top = cands[0];
@@ -843,6 +860,7 @@ function rowHTML(E, byName) {
           : '<span class="score">no name picked yet — pick a match below or pick a slot</span>'}
         <button class="mini" data-act="toggle">${show ? 'hide options' : 'options'}</button>
         ${p.state !== 'ready' && E._own ? '<button class="mini" data-act="ownname">use its own name</button>' : ''}
+        ${p.state === 'review' && DOLPHIN_NAME.test(E.name) && !E._own ? '<button class="mini" data-act="keepname">keep this name</button>' : ''}
         ${p.state === 'skipped'
           ? '<button class="mini" data-act="unskip">un-skip</button>'
           : '<button class="mini" data-act="skip">skip</button>'}
@@ -851,6 +869,7 @@ function rowHTML(E, byName) {
       ${p.v && p.state !== 'skipped' ? `<span class="verdict v-${p.v.cls}">${p.v.txt}</span>` : ''}
       ${nameG && p.state !== 'ready' ? `<div class="idnote">from its filename: <b>${esc(dname(nameG.rows[0].character))}</b> · ${nameG.rows[0].label ? esc(nameG.rows[0].label) + ' <span class="traw">' + esc(nameG.rows[0].part) + '</span>' : '<span class="traw">' + esc(nameG.rows[0].part) + '</span> (small part, no simple label)'}${nameG.exact ? '' : ' (extra layer or variant of this texture)'} — pick the costume slot below</div>` : ''}
       ${p.note ? `<div class="idnote">${esc(p.note)}</div>` : ''}
+      ${E.semi > 0.3 && p.state !== 'skipped' ? '<div class="idnote" style="color:var(--warn,#e0a040)">heads up: this image is partly transparent across most of its area. Game textures like this are normally solid, so it may look washed out or the wrong color in game, especially if the mod also changed the model\'s materials, which this method cannot do.</div>' : ''}
       ${p.state === 'ready' && p.name && xs.ok ? fileRowsHTML(p.name, E._pac ? 'pac' : '') : ''}
       ${show ? slotRowHTML(E, uient, fkey) : ''}
       ${show ? (E.cands || []).map(c => candHTML2(E, c, p)).join('') : ''}
@@ -1044,22 +1063,36 @@ function universalPacSkip(name, pacName) {
 /* a fighter pac's textures are identified by the character in the file name and
  * the texture's internal part name only — the number in the file name says nothing
  * about which slot you want them on; that is always the slot you pick */
-function pacSource(it, pacName) {
+function pacSource(it, pacName, guess) {
+  // the character comes from the file name when it is a normal FitName##.pac; renamed or oddly
+  // named files (FitCaptainXX.pac, "Shadow Falcon.pac") fall back to what the textures inside say
   const m = /^Fit([A-Za-z]+?)\d*\.(?:pac|pcs)$/i.exec(pacName || '');
-  if (!m) return null;
-  const ch = m[1].toLowerCase();
-  if (!cost.some(r => r.character === ch)) return null;
+  let ch = m ? m[1].toLowerCase() : '';
+  if (!cost.some(r => r.character === ch)) ch = guess || '';
+  if (!ch) return null;
   const internal = it.tex && it.tex.name;
   if (!internal) return null;
   const row = cost.find(r => r.character === ch && (r.part === internal || r.part.split(' | ').includes(internal))
     && DOLPHIN_NAME.test(r.dolphin_name || ''));
   return row ? { char: ch, part: row.part } : null;
 }
+/* which character a pac belongs to, judged by the internal texture names (cap_body, cap_helmet ...) */
+function guessPacChar(items) {
+  const score = {};
+  for (const it of items) {
+    const n = it.tex && it.tex.name; if (!n) continue;
+    const chars = new Set(cost.filter(r => r.part === n || r.part.split(' | ').includes(n)).map(r => r.character));
+    if (chars.size === 1) { const c = [...chars][0]; score[c] = (score[c] || 0) + 1; }
+  }
+  const top = Object.entries(score).sort((a, b) => b[1] - a[1]);
+  return top.length && top[0][1] >= 2 && (top.length === 1 || top[0][1] > top[1][1]) ? top[0][0] : '';
+}
 
 async function addPacFile(f, list) {
   const buf = new Uint8Array(await f.arrayBuffer());
   const items = await PACMOD.extractPacTextures(buf);
   if (!items.length) { UP.errors.push(f.name + ' — no textures found inside'); return; }
+  const guessCh = guessPacChar(items);
   for (const it of items) {
     const c = PACMOD.texToCanvas(it);
     if (!c) continue;
@@ -1074,21 +1107,28 @@ async function addPacFile(f, list) {
       info.pick = { state: 'skipped', name: null, auto: true,
         note: 'auto-skipped — the built-in data lists ' + univ.txt + ' — not dump-checked. Usually unnecessary for a costume-only recolor; un-skip if your mod changes it.' };
     } else {
-      const src = pacSource(it, f.name);
+      const src = pacSource(it, f.name, guessCh);
       if (src) {
         info._pacSrc = src;
+        const orow = cost.find(r => r.character === src.char && r.part === src.part);
+        const sizeDiff = orow && (+orow.width !== info.w || +orow.height !== info.h);
+        if (sizeDiff) info._modelWarn = true;
         info.pick = { state: 'review', name: null,
-          v: { cls: 'weak', txt: 'pick the character and costume slot in the bar above and press apply — the number in ' + f.name + ' is ignored' } };
+          v: { cls: 'weak', txt: (sizeDiff
+            ? 'this texture is ' + info.w + 'x' + info.h + ' but the original ' + src.part + ' is ' + orow.width + 'x' + orow.height + ' — the mod probably changes the model, which this method cannot carry. '
+            : '') + 'pick the character and costume slot in the bar above and press apply — the number in ' + f.name + ' is ignored' } };
         if (G.active && G.ch && G.slot) gAssign(info, G.ch, G.slot);  // a slot is already picked: use it
-      } else if (/^Fit[A-Za-z]+\d*\.(?:pac|pcs)$/i.test(f.name)) {
+      } else if (/^Fit[A-Za-z]+\d*\.(?:pac|pcs)$/i.test(f.name) || guessCh) {
         // fighter pac, but no built-in original for this part + slot — needs your call
         info._own = { name: it.name, mvar: it.mvar };
         info.pick = { state: 'review', name: null,
           v: { cls: 'weak', txt: 'no built-in original matched this part of ' + f.name + ' — use its own name if your game loads this file as-is, or pick a slot below' } };
       } else {
-        info.pick = { state: 'ready', name: it.name, auto: true, confirmed: true,
-          note: 'name computed from the texture data inside ' + f.name + ' — not dump-checked' +
-                (it.mvar ? ' — Dolphin may also use ' + it.mvar : '') };
+        // a pac we can't tie to a character: the computed name is the hash of the MODDED pixels, which
+        // never matches the game's original — never accept it silently
+        info.pick = { state: 'review', name: null,
+          v: { cls: 'weak', txt: 'could not tell which character ' + f.name + ' is for, so no original name could be worked out — pick the character and costume slot above and press apply' } };
+        info._unmapped = true;
       }
     }
     list.push(info);
@@ -1212,6 +1252,8 @@ el('id-results').addEventListener('click', e => {
       : computePick(E);
     if (E.pick.state === 'review' && !E._optInit) { expandedRows.add(E); E._optInit = true; }
     renderResults();
+  } else if (act.dataset.act === 'keepname') {
+    E._keepName = true; E.pick = computePick(E); renderResults(); updateExportBar();
   } else if (act.dataset.act === 'ownname') {
     // fighter-pac texture with no built-in original — you say the game loads this data as-is
     if (E._own && DOLPHIN_NAME.test(E._own.name)) {
@@ -1549,19 +1591,26 @@ el('gapply').addEventListener('click', () => {
   if (!slot) { el('gresult').textContent = 'pick a costume slot first'; return; }
   G.ch = ch; G.slot = slot; G.active = true;
   const uiCh = gUIMatch(ch);
-  let ok = 0, miss = 0, left = 0;
+  let ok = 0, miss = 0, left = 0, warned = 0;
   for (const E of UP.edited) {
     if (E.pick && E.pick.state === 'skipped') continue;
     const uient = UI_INDEX && ((E.pick && E.pick.state === 'ready' && E.pick.name && UI_INDEX[E.pick.name]) ||
       (E.cands && E.cands[0] && UI_INDEX[E.cands[0].O.name]));
     if (uient) { if (gAssignUI(E, uient, uiCh, slot)) ok++; else miss++; continue; }
     if (!gResolveSource(E)) { left++; continue; }
-    if (gAssign(E, ch, slot)) ok++; else miss++;
+    if (gAssign(E, ch, slot)) {
+      ok++;
+      if (E._modelWarn && E.pick && E.pick.state === 'ready') {
+        warned++;
+        E.pick.note = (E.pick.note || '') + ' — WARNING: its size differs from the original texture, so this mod probably changes the model and the texture will likely look scrambled on the normal model';
+      }
+    } else miss++;
   }
   renderResults(); updateExportBar();
   el('gresult').textContent = `named ${ok} texture${ok === 1 ? '' : 's'}`
     + (miss ? ` · ${miss} need review (no texture for ${gSlotShort(ch, slot)})` : '')
-    + (left ? ` · ${left} left as-is (not fighter textures)` : '');
+    + (left ? ` · ${left} not included (no matching original texture to name them after)` : '')
+    + (warned ? ` · ${warned} differ in size from the original — likely a model change` : '');
 });
 
 /* uploading FitCaptain01.pac? pre-pick Captain Falcon + that costume */
